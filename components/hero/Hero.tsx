@@ -168,21 +168,21 @@ export default function Hero() {
           </div>
 
           {/* Kinetic Dual-Line Typography Explosion */}
-          <div className="flex flex-col items-center justify-center gap-1 md:gap-3">
-            <motion.div style={{ x: line1X }} className="flex items-center gap-3 md:gap-6">
-              <span className="hero-display text-[clamp(44px,8.5vw,130px)] leading-[0.88] text-paper">
+          <div className="flex flex-col items-center justify-center gap-2 md:gap-4 w-full">
+            <motion.div style={{ x: line1X }} className="flex items-center justify-center gap-3 md:gap-6 whitespace-nowrap">
+              <span className="hero-display text-[clamp(32px,6.5vw,110px)] leading-none text-paper">
                 IDEAS ARE
               </span>
-              <span className="hero-display text-[clamp(44px,8.5vw,130px)] leading-[0.88] text-ember italic font-bold">
+              <span className="hero-display text-[clamp(32px,6.5vw,110px)] leading-none text-ember italic font-bold">
                 CHEAP.
               </span>
             </motion.div>
 
-            <motion.div style={{ x: line2X }} className="flex items-center gap-3 md:gap-6">
-              <span className="hero-display text-[clamp(44px,8.5vw,130px)] leading-[0.88] text-stroke-paper opacity-85">
+            <motion.div style={{ x: line2X }} className="flex items-center justify-center gap-3 md:gap-6 whitespace-nowrap">
+              <span className="hero-display text-[clamp(32px,6.5vw,110px)] leading-none text-stroke-paper opacity-85">
                 EXECUTION IS
               </span>
-              <span className="hero-display text-[clamp(44px,8.5vw,130px)] leading-[0.88] text-paper underline decoration-ember decoration-4 underline-offset-8">
+              <span className="hero-display text-[clamp(32px,6.5vw,110px)] leading-none text-paper underline decoration-ember decoration-4 underline-offset-8">
                 EVERYTHING.
               </span>
             </motion.div>

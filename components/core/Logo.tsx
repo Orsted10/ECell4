@@ -35,16 +35,16 @@ export default function Logo({
       <span className="relative flex h-6 w-6 items-center justify-center">
         <span
           className={cn(
-            "absolute h-2.5 w-2.5 rounded-full transition-all duration-500 group-hover:scale-125",
+            "absolute h-2.5 w-2.5 rounded-full transition-colors duration-200 group-hover:scale-125",
             onDark ? "bg-paper" : "bg-ink"
           )}
         />
-        <span className="absolute h-4 w-4 rounded-full border border-ember/0 transition-all duration-500 group-hover:border-ember/70" />
+        <span className="absolute h-4 w-4 rounded-full border border-ember/0 transition-all duration-300 group-hover:border-ember/70" />
       </span>
       <span className="flex flex-col leading-none">
         <span
           className={cn(
-            "font-display text-[22px] tracking-[0.04em]",
+            "font-display text-[22px] tracking-[0.04em] transition-colors duration-200",
             onDark ? "text-paper" : "text-ink"
           )}
         >
@@ -52,8 +52,8 @@ export default function Logo({
         </span>
         <span
           className={cn(
-            "label mt-1 opacity-60",
-            onDark ? "text-paper" : "text-ink"
+            "label mt-1 transition-colors duration-200",
+            onDark ? "text-paper/60" : "text-ink/60"
           )}
         >
           {SITE.campus}

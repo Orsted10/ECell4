@@ -292,6 +292,13 @@ function TextScene({ reduced }: { reduced: boolean }) {
         ORIGIN_VECTOR // SEED_NODE
       </div>
 
+      {/* Monumental E-CELL Watermark in Background */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none overflow-hidden">
+        <span className="hero-display text-[clamp(140px,32vw,480px)] leading-none text-paper/[0.025] tracking-tight font-black">
+          E-CELL
+        </span>
+      </div>
+
       {/* Central Pulsing Origin Ring */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-64 w-64 rounded-full border border-paper/[0.04] animate-[spin_60s_linear_infinite]" />
