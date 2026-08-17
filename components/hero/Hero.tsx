@@ -25,18 +25,18 @@ export default function Hero() {
     offset: ["start start", "end end"],
   });
 
-  // Stage 1: Hero Impact Wordmark (0.0 -> 0.4)
-  const heroScale = useTransform(scrollYProgress, [0, 0.35], [1, 0.85]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.25, 0.38], [1, 0.9, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.35], [0, -60]);
+  // Stage 1: Hero Impact Wordmark (0.0 -> 0.28)
+  const heroScale = useTransform(scrollYProgress, [0, 0.28], [1, 0.88]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.18, 0.26], [1, 0.6, 0]);
+  const heroY = useTransform(scrollYProgress, [0, 0.28], [0, -50]);
 
-  // Stage 2: Mission Reveal & The Core Formula (0.35 -> 0.7)
-  const formulaOpacity = useTransform(scrollYProgress, [0.34, 0.45, 0.65, 0.75], [0, 1, 1, 0]);
-  const formulaY = useTransform(scrollYProgress, [0.34, 0.45, 0.65, 0.75], [50, 0, 0, -40]);
+  // Stage 2: Mission Reveal & The Core Formula (0.34 -> 0.64)
+  const formulaOpacity = useTransform(scrollYProgress, [0.34, 0.42, 0.58, 0.66], [0, 1, 1, 0]);
+  const formulaY = useTransform(scrollYProgress, [0.34, 0.42, 0.58, 0.66], [40, 0, 0, -40]);
 
-  // Stage 3: The 3 Launch Pillars (0.7 -> 1.0)
-  const pillarsOpacity = useTransform(scrollYProgress, [0.72, 0.84], [0, 1]);
-  const pillarsY = useTransform(scrollYProgress, [0.72, 0.88], [40, 0]);
+  // Stage 3: The 3 Launch Pillars (0.72 -> 1.0)
+  const pillarsOpacity = useTransform(scrollYProgress, [0.72, 0.82], [0, 1]);
+  const pillarsY = useTransform(scrollYProgress, [0.72, 0.86], [40, 0]);
 
   return (
     <section
