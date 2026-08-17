@@ -155,51 +155,63 @@ export default function JourneyPath({ progress, count }: Props) {
         });
       }
 
-      // ── 1. BACKGROUND ORBITAL RINGS & CONSTELLATION GRID ──
+      const cx = width / 2;
+      const originY = height * 0.08;
+
+      // ── 1. CELESTIAL BACKGROUND CONSTELLATION FIELD & RADAR GRIDS ──
       ctx.save();
+
+      // Ambient stellar dust / background stars
       nodes.forEach((n, i) => {
-        // Draw subtle celestial coordinate ring around each major node
+        // Draw celestial coordinate ring around each major node
         ctx.beginPath();
         ctx.arc(n.x, n.y, 45, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(242,239,233,0.035)";
+        ctx.strokeStyle = "rgba(242,239,233,0.04)";
         ctx.setLineDash([2, 6]);
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Secondary outer radar ring on every 3rd node
-        if (i % 3 === 0) {
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, 85, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(227,30,36,0.025)";
-          ctx.setLineDash([1, 10]);
-          ctx.stroke();
-        }
+        // Secondary radar ring
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 85, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(227,30,36,0.03)";
+        ctx.setLineDash([1, 10]);
+        ctx.stroke();
+
+        // Crosshair reticle guides
+        ctx.beginPath();
+        ctx.moveTo(n.x - 6, n.y);
+        ctx.lineTo(n.x + 6, n.y);
+        ctx.moveTo(n.x, n.y - 6);
+        ctx.lineTo(n.x, n.y + 6);
+        ctx.strokeStyle = "rgba(242,239,233,0.12)";
+        ctx.setLineDash([]);
+        ctx.stroke();
       });
-      ctx.setLineDash([]);
       ctx.restore();
 
       // ── 2. BASE TRAJECTORY (FAINT BLUEPRINT LINE) ──
       ctx.save();
       ctx.beginPath();
-      // Entry vector from top center
-      ctx.moveTo(cx, top - 60);
-      nodes.forEach((n, i) => {
+      // Entry vector from top center cosmos
+      ctx.moveTo(cx, originY);
+      nodes.forEach((n) => {
         ctx.lineTo(n.x, n.y);
       });
-      ctx.strokeStyle = "rgba(242,239,233,0.12)";
+      ctx.strokeStyle = "rgba(242,239,233,0.14)";
       ctx.lineWidth = 1.2;
       ctx.stroke();
 
       // Entry origin beacon dot
       ctx.beginPath();
-      ctx.arc(cx, top - 60, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(242,239,233,0.35)";
+      ctx.arc(cx, originY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(242,239,233,0.5)";
       ctx.fill();
 
       // Secondary parallel dashed grid rail
       ctx.beginPath();
-      ctx.moveTo(cx + 6, top - 60);
-      nodes.forEach((n, i) => {
+      ctx.moveTo(cx + 6, originY);
+      nodes.forEach((n) => {
         const ox = n.side * 6;
         ctx.lineTo(n.x + ox, n.y);
       });
@@ -216,26 +228,26 @@ export default function JourneyPath({ progress, count }: Props) {
 
         // Pass A: Wide Soft Bloom
         ctx.beginPath();
-        ctx.moveTo(cx, top - 60);
+        ctx.moveTo(cx, originY);
         nodes.forEach((n, i) => {
           if (i <= currentIdx) ctx.lineTo(n.x, n.y);
         });
         if (currentIdx < totalSegs) {
           ctx.lineTo(hx, hy);
         }
-        ctx.strokeStyle = "rgba(227,30,36,0.22)";
-        ctx.lineWidth = 9;
+        ctx.strokeStyle = "rgba(227,30,36,0.25)";
+        ctx.lineWidth = 10;
         ctx.lineCap = "round";
         ctx.stroke();
 
         // Pass B: Medium Inner Glow
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "rgba(227,30,36,0.65)";
+        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = "rgba(227,30,36,0.75)";
         ctx.stroke();
 
         // Pass C: Bright Core Laser
-        ctx.lineWidth = 1.8;
-        ctx.strokeStyle = "rgba(255,245,240,0.95)";
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,245,240,0.98)";
         ctx.stroke();
 
         ctx.restore();
