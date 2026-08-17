@@ -308,59 +308,132 @@ function LockupScene({
   onEnter: () => void;
   reduced: boolean;
 }) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (reduced) return;
+    const onMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 28;
+      const y = (e.clientY / window.innerHeight - 0.5) * 18;
+      setTilt({ x, y });
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [reduced]);
+
   return (
     <motion.div
-      className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+      className="relative flex h-full w-full select-none flex-col items-center justify-center overflow-hidden px-6 text-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: reduced ? 0.01 : 0.6 }}
     >
-      {/* red line — the trajectory of possibility → action */}
-      <motion.div
-        className="mb-8 h-[2px] w-16 bg-ember"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      />
+      {/* Background Architectural HUD Matrix */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-8 md:p-14 opacity-35 font-mono text-[10px] tracking-[0.3em] text-ash">
+        <div className="flex justify-between items-center w-full">
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-ember animate-ping" />
+            SYS.READY // ARCHITECTURE ONLINE
+          </span>
+          <span>LAT 28.5355° N · LON 77.3910° E</span>
+        </div>
+        <div className="flex justify-between items-center w-full">
+          <span>ENTREPRENEURSHIP CELL</span>
+          <span>CHANDIGARH UNIVERSITY · UP</span>
+        </div>
+      </div>
 
-      <motion.h2
-        className="font-display text-6xl tracking-wide text-paper md:text-8xl"
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.9, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      >
-        E-CELL
-      </motion.h2>
-
+      {/* 3D Parallax Main Lockup Frame */}
       <motion.div
-        className="mt-5 flex flex-col items-center gap-1"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.7 }}
+        style={{
+          transform: `perspective(1000px) rotateX(${-tilt.y}deg) rotateY(${tilt.x}deg) translate3d(${tilt.x * 1.5}px, ${tilt.y * 1.5}px, 0)`,
+          transition: "transform 0.12s cubic-bezier(0.2, 0, 0.2, 1)",
+        }}
+        className="relative z-10 flex flex-col items-center justify-center"
       >
-        <span className="label text-paper/80">{SITE.university}</span>
-        <span className="label text-ember">{SITE.campus}</span>
-      </motion.div>
+        {/* Top Signal Indicator */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-6 flex items-center gap-3"
+        >
+          <div className="h-[2px] w-12 bg-ember" />
+          <span className="font-mono text-[11px] tracking-[0.35em] text-ember font-bold">
+            INITIATE
+          </span>
+          <div className="h-[2px] w-12 bg-ember" />
+        </motion.div>
 
-      <motion.div
-        className="mt-12"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 1.05 }}
-      >
-        <Magnetic>
-          <button
-            type="button"
-            onClick={onEnter}
-            data-cursor="enter"
-            className="group relative inline-flex items-center gap-4 border border-paper/30 px-8 py-4 transition-colors duration-300 hover:border-ember hover:bg-ember"
+        {/* Master Display Heading with Ghost Depth Stroke */}
+        <div className="relative">
+          <motion.h1
+            className="hero-display flex text-[clamp(90px,22vw,320px)] leading-[0.82] tracking-tighter text-paper select-none"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="label text-paper">ENTER THE ECOSYSTEM</span>
-            <span className="text-ember transition-all duration-300 group-hover:translate-x-1.5 group-hover:text-paper">
-              →
-            </span>
-          </button>
-        </Magnetic>
+            <span>E</span>
+            <span className="text-ember">—</span>
+            <span>CELL</span>
+          </motion.h1>
+
+          {/* Glowing Shadow Outlines */}
+          <h1
+            aria-hidden
+            className="hero-display pointer-events-none absolute inset-0 flex text-[clamp(90px,22vw,320px)] leading-[0.82] tracking-tighter text-transparent opacity-25 select-none"
+            style={{
+              WebkitTextStroke: "2px rgba(227,30,36,0.5)",
+              transform: "translate(6px, 6px)",
+            }}
+          >
+            <span>E</span>
+            <span>—</span>
+            <span>CELL</span>
+          </h1>
+        </div>
+
+        {/* Location & Brand Credentials */}
+        <motion.div
+          className="mt-6 flex flex-col items-center gap-1.5"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          <p className="font-mono text-xs md:text-sm tracking-[0.3em] uppercase text-paper/90 font-medium">
+            {SITE.university}
+          </p>
+          <p className="font-mono text-[11px] tracking-[0.4em] uppercase text-ember font-semibold">
+            {SITE.campus}
+          </p>
+        </motion.div>
+
+        {/* Master Magnetic Entry CTA */}
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.6 }}
+        >
+          <Magnetic>
+            <button
+              type="button"
+              onClick={onEnter}
+              data-cursor="enter"
+              className="group relative inline-flex items-center gap-5 overflow-hidden border border-paper/40 bg-void/80 px-10 py-5 transition-all duration-500 hover:border-ember hover:shadow-[0_0_40px_rgba(227,30,36,0.4)]"
+            >
+              {/* Button Hover Fill Animation */}
+              <span className="absolute inset-0 translate-y-full bg-ember transition-transform duration-500 ease-out group-hover:translate-y-0" />
+
+              <span className="relative z-10 font-mono text-xs md:text-sm tracking-[0.25em] font-bold text-paper transition-colors duration-300">
+                ENTER THE ECOSYSTEM
+              </span>
+              <span className="relative z-10 font-mono text-base text-ember transition-all duration-300 group-hover:translate-x-2 group-hover:text-paper">
+                →
+              </span>
+            </button>
+          </Magnetic>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
