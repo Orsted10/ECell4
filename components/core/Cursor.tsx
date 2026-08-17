@@ -21,42 +21,18 @@ export default function Cursor() {
   const [pressed, setPressed] = useState(false);
   const [hidden, setHidden] = useState(true);
 
-  const dotRef = useRef<HTMLDivElement>(null);
-  const ringRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isFinePointer()) return;
     setEnabled(true);
 
-    let mouseX = -100;
-    let mouseY = -100;
-    let ringX = -100;
-    let ringY = -100;
-    let rafId = 0;
-
     const move = (e: MouseEvent) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
       setHidden(false);
-
-      // Instantaneous dot positioning with 0ms lag
-      if (dotRef.current) {
-        dotRef.current.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
       }
     };
-
-    // Ultra-snappy 120fps ring interpolation loop
-    const renderRing = () => {
-      // High responsiveness factor (0.35) for crisp, lag-free following
-      ringX += (mouseX - ringX) * 0.35;
-      ringY += (mouseY - ringY) * 0.35;
-
-      if (ringRef.current) {
-        ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
-      }
-      rafId = requestAnimationFrame(renderRing);
-    };
-    rafId = requestAnimationFrame(renderRing);
 
     const down = () => setPressed(true);
     const up = () => setPressed(false);
@@ -81,7 +57,6 @@ export default function Cursor() {
     document.addEventListener("mouseover", over);
 
     return () => {
-      cancelAnimationFrame(rafId);
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mousedown", down);
       window.removeEventListener("mouseup", up);
@@ -99,31 +74,21 @@ export default function Cursor() {
 
   if (!enabled) return null;
 
-  const expanded = label !== null;
+  const isInteractive = label !== null;
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden">
-      {/* Precision Instant Dot (0ms lag, direct GPU transform) */}
       <div
-        ref={dotRef}
+        ref={cursorRef}
         style={{ willChange: "transform" }}
-        className={`fixed left-0 top-0 h-[6px] w-[6px] rounded-full bg-paper mix-blend-difference transition-opacity duration-150 ${
-          hidden ? "opacity-0" : "opacity-100"
-        } ${pressed ? "scale-50" : "scale-100"}`}
-      />
-
-      {/* Responsive Follower Ring / Interactive Pill */}
-      <div
-        ref={ringRef}
-        style={{ willChange: "transform" }}
-        className={`fixed left-0 top-0 flex items-center justify-center rounded-full border transition-all duration-200 ${
+        className={`fixed left-0 top-0 flex items-center justify-center rounded-full transition-[width,height,background-color,border-color,opacity] duration-150 ease-out ${
           hidden ? "opacity-0" : "opacity-100"
         } ${
-          expanded
-            ? "h-9 w-24 border-ember bg-ember/90 shadow-[0_0_20px_rgba(227,30,36,0.5)]"
+          isInteractive
+            ? "h-9 w-24 border border-ember bg-ember/90 shadow-[0_0_20px_rgba(227,30,36,0.5)]"
             : pressed
-            ? "h-7 w-7 border-ember bg-ember/30 scale-90"
-            : "h-8 w-8 border-paper/40 bg-void/20"
+            ? "h-2 w-2 bg-ember"
+            : "h-[8px] w-[8px] bg-paper mix-blend-difference"
         }`}
       >
         <AnimatePresence mode="popLayout">
