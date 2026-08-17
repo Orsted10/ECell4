@@ -116,60 +116,46 @@ export default function WhatIs() {
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            PHASE 4: KINETIC ECOSYSTEM CONVERGENCE (0.76 -> 1.00)
+            PHASE 4: EXPANSIVE KINETIC ECOSYSTEM MATRIX (0.76 -> 1.00)
            ════════════════════════════════════════════════════════════════════ */}
         <motion.div
           className="absolute inset-0 flex flex-col items-center justify-center px-6 pointer-events-none"
           style={{ opacity: wordsOpacity, y: wordsY }}
         >
-          <div className="mb-10 text-center">
-            <div className="inline-flex items-center gap-3 border border-ember/30 bg-ember/10 px-4 py-1.5 backdrop-blur-md">
-              <span className="h-1.5 w-1.5 rounded-full bg-ember animate-ping" />
-              <span className="font-mono text-[11px] tracking-[0.35em] uppercase text-ember font-bold">
-                THE CONVERGENCE
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center gap-3 border border-ember/30 bg-ember/10 px-5 py-2 backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-ember animate-ping" />
+              <span className="font-mono text-xs tracking-[0.4em] uppercase text-ember font-bold">
+                04 // THE CONVERGENCE
               </span>
             </div>
+            <h3 className="hero-display text-2xl md:text-4xl text-ink mt-3">
+              THE 8 FORCES OF THE ECOSYSTEM
+            </h3>
           </div>
 
-          {/* Radial Dynamic Convergence Orbit */}
-          <div className="relative w-full max-w-5xl h-[380px] flex items-center justify-center">
-            
-            {/* Center Pulsing Reactor Dot */}
-            <div className="relative z-10 flex h-14 w-14 items-center justify-center">
-              <div className="absolute h-full w-full rounded-full bg-ember/20 animate-ping" />
-              <div className="absolute h-8 w-8 rounded-full border border-ember/40 bg-ember/10" />
-              <div className="h-3 w-3 rounded-full bg-ember shadow-[0_0_20px_rgba(227,30,36,0.8)]" />
-            </div>
-
-            {/* Orbit Ring Guides */}
-            <div className="pointer-events-none absolute h-[240px] w-[240px] md:h-[300px] md:w-[300px] rounded-full border border-ink/5 border-dashed animate-[spin_60s_linear_infinite]" />
-            <div className="pointer-events-none absolute h-[320px] w-[320px] md:h-[420px] md:w-[420px] rounded-full border border-ink/5" />
-
-            {/* Individual Word Entities Floating In From Their Unique Coordinates */}
-            {ECOSYSTEM_WORDS.map((w, idx) => {
-              // Calculate 8 distinct radial directions around the center
-              const angle = (idx / ECOSYSTEM_WORDS.length) * (2 * Math.PI) - Math.PI / 2;
-              const radius = 170; // px distance from center on desktop
-              const targetX = Math.cos(angle) * radius;
-              const targetY = Math.sin(angle) * (radius * 0.7); // slightly elliptical
-
-              return (
-                <motion.div
-                  key={w}
-                  style={{
-                    transform: `translate(${targetX}px, ${targetY}px)`,
-                  }}
-                  className="absolute flex items-center justify-center"
-                >
-                  <span className="hero-display text-[clamp(18px,3vw,36px)] text-ink/90 font-bold tracking-wider px-3 py-1 bg-paper/90 backdrop-blur-sm border border-ink/10 shadow-sm transition-transform hover:scale-110">
+          {/* Expansive Architectural Floating Matrix (Generous Spacing) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full max-w-6xl mt-4">
+            {ECOSYSTEM_WORDS.map((w, idx) => (
+              <div
+                key={w}
+                className="group relative border border-ink/15 bg-paper/80 p-6 md:p-8 flex flex-col justify-between h-[130px] md:h-[160px] shadow-sm backdrop-blur-md transition-all duration-300 hover:border-ember hover:shadow-[0_10px_30px_rgba(227,30,36,0.15)]"
+              >
+                <div className="flex justify-between items-center font-mono text-[10px] md:text-xs text-ink/40">
+                  <span className="text-ember font-bold">0{idx + 1}</span>
+                  <span className="tracking-[0.2em]">FORCE</span>
+                </div>
+                <div>
+                  <span className="hero-display text-2xl md:text-4xl text-ink tracking-wide block transition-transform duration-300 group-hover:translate-x-1">
                     {w}
                   </span>
-                </motion.div>
-              );
-            })}
+                </div>
+                <div className="h-[2px] w-6 bg-ember transition-all duration-300 group-hover:w-full" />
+              </div>
+            ))}
           </div>
 
-          <motion.div className="mt-8 text-center">
+          <motion.div className="mt-10 text-center">
             <p className="font-mono text-xs md:text-sm tracking-[0.35em] uppercase text-ember font-bold">
               EVERYTHING STARTS WITH AN IDEA<span className="text-ink">.</span>
             </p>
