@@ -47,23 +47,30 @@ export default function Journey() {
 
         {/* Active Stage Card pinned inside viewport */}
         {STAGES.map((s, i) => {
-          // 10 stages cleanly mapped across scroll range (0.10 -> 0.96)
-          const start = 0.10 + (i / STAGES.length) * 0.86;
-          const end = start + 0.86 / STAGES.length;
+          // Total window for stage i:
+          const step = 0.86 / STAGES.length; // 0.086
+          const stageStart = 0.10 + i * step;
+          const stageEnd = stageStart + step;
+
+          // Dedicated non-overlapping visibility window (active across 75% of step, fades out before next step starts)
+          const fadeInStart = stageStart + 0.005;
+          const fadeInEnd = stageStart + 0.020;
+          const fadeOutStart = stageEnd - 0.020;
+          const fadeOutEnd = stageEnd - 0.005;
           
           const o = useTransform(
             scrollYProgress,
-            [start - 0.015, start + 0.02, end - 0.02, end + 0.015],
+            [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd],
             [0, 1, 1, 0]
           );
           const y = useTransform(
             scrollYProgress,
-            [start - 0.015, start + 0.02, end - 0.02, end + 0.015],
-            [40, 0, 0, -40]
+            [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd],
+            [30, 0, 0, -30]
           );
           const scale = useTransform(
             scrollYProgress,
-            [start - 0.015, start + 0.02, end - 0.02, end + 0.015],
+            [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd],
             [0.96, 1, 1, 0.96]
           );
           
