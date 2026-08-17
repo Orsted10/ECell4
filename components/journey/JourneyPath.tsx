@@ -118,23 +118,26 @@ export default function JourneyPath({ progress, count }: Props) {
         return;
       }
 
-      // Normalize progress from 0.08 to 0.95 so stage 01 activates right after intro
-      const normalizedP = Math.max(0, Math.min(1, (p - 0.06) / 0.88));
-      const totalSegs = nodes.length - 1;
-      const travelled = normalizedP * totalSegs;
+      const cx = width / 2;
+      const originY = height * 0.08;
+
+      // Full points list including entry origin dot as index 0
+      const allPoints = [{ x: cx, y: originY, bx: cx, by: originY, side: 0, label: "ORIGIN", stageNum: "00" }, ...nodes];
+      const totalSegs = allPoints.length - 1;
+      const travelled = p * totalSegs;
       const currentIdx = Math.min(totalSegs, Math.floor(travelled));
       const currentFrac = travelled - currentIdx;
 
-      // Calculate current head position
-      let hx = nodes[0].x;
-      let hy = nodes[0].y;
+      // Calculate current head position starting right from origin dot
+      let hx = allPoints[0].x;
+      let hy = allPoints[0].y;
       if (currentIdx < totalSegs) {
-        const a = nodes[currentIdx];
-        const b = nodes[currentIdx + 1];
+        const a = allPoints[currentIdx];
+        const b = allPoints[currentIdx + 1];
         hx = a.x + (b.x - a.x) * currentFrac;
         hy = a.y + (b.y - a.y) * currentFrac;
       } else {
-        const last = nodes[nodes.length - 1];
+        const last = allPoints[allPoints.length - 1];
         hx = last.x;
         hy = last.y;
       }
@@ -155,15 +158,9 @@ export default function JourneyPath({ progress, count }: Props) {
         });
       }
 
-      const cx = width / 2;
-      const originY = height * 0.08;
-
       // ── 1. CELESTIAL BACKGROUND CONSTELLATION FIELD & RADAR GRIDS ──
       ctx.save();
-
-      // Ambient stellar dust / background stars
-      nodes.forEach((n, i) => {
-        // Draw celestial coordinate ring around each major node
+      nodes.forEach((n) => {
         ctx.beginPath();
         ctx.arc(n.x, n.y, 45, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(242,239,233,0.04)";
@@ -171,14 +168,12 @@ export default function JourneyPath({ progress, count }: Props) {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Secondary radar ring
         ctx.beginPath();
         ctx.arc(n.x, n.y, 85, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(227,30,36,0.03)";
         ctx.setLineDash([1, 10]);
         ctx.stroke();
 
-        // Crosshair reticle guides
         ctx.beginPath();
         ctx.moveTo(n.x - 6, n.y);
         ctx.lineTo(n.x + 6, n.y);
@@ -193,10 +188,9 @@ export default function JourneyPath({ progress, count }: Props) {
       // ── 2. BASE TRAJECTORY (FAINT BLUEPRINT LINE) ──
       ctx.save();
       ctx.beginPath();
-      // Entry vector from top center cosmos
-      ctx.moveTo(cx, originY);
-      nodes.forEach((n) => {
-        ctx.lineTo(n.x, n.y);
+      allPoints.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
       });
       ctx.strokeStyle = "rgba(242,239,233,0.14)";
       ctx.lineWidth = 1.2;
@@ -204,16 +198,16 @@ export default function JourneyPath({ progress, count }: Props) {
 
       // Entry origin beacon dot
       ctx.beginPath();
-      ctx.arc(cx, originY, 3, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(242,239,233,0.5)";
+      ctx.arc(cx, originY, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = currentIdx === 0 ? "rgba(227,30,36,0.9)" : "rgba(242,239,233,0.5)";
       ctx.fill();
 
       // Secondary parallel dashed grid rail
       ctx.beginPath();
-      ctx.moveTo(cx + 6, originY);
-      nodes.forEach((n) => {
-        const ox = n.side * 6;
-        ctx.lineTo(n.x + ox, n.y);
+      allPoints.forEach((pt, i) => {
+        const ox = (pt.side || 1) * 6;
+        if (i === 0) ctx.moveTo(pt.x + ox, pt.y);
+        else ctx.lineTo(pt.x + ox, pt.y);
       });
       ctx.strokeStyle = "rgba(242,239,233,0.04)";
       ctx.setLineDash([4, 8]);
@@ -223,14 +217,14 @@ export default function JourneyPath({ progress, count }: Props) {
       ctx.restore();
 
       // ── 3. ACTIVE GLOWING TRAVELLED PATH (MULTI-PASS GLOW) ──
-      if (travelled > 0.001 || p > 0.01) {
+      if (travelled > 0.001) {
         ctx.save();
 
         // Pass A: Wide Soft Bloom
         ctx.beginPath();
-        ctx.moveTo(cx, originY);
-        nodes.forEach((n, i) => {
-          if (i <= currentIdx) ctx.lineTo(n.x, n.y);
+        allPoints.forEach((pt, i) => {
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else if (i <= currentIdx) ctx.lineTo(pt.x, pt.y);
         });
         if (currentIdx < totalSegs) {
           ctx.lineTo(hx, hy);
