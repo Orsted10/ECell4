@@ -48,17 +48,17 @@ export default function Journey() {
         {/* Active Stage Card pinned inside viewport */}
         {STAGES.map((s, i) => {
           // Total 10 segments (Point 0: Origin -> Point 1: 01 Wonder -> ... Point 10: 10 Impact)
-          // Segment duration across scroll [0.08, 0.96]:
-          const step = 0.88 / 10;
+          // Total window [0.08, 0.90] with step = 0.078
+          const step = 0.78 / 10;
           // Laser reaches Node (i + 1) at EXACTLY: arrival = 0.08 + (i + 1) * step
+          // i = 0 (Node 01) -> 0.158
+          // i = 9 (Node 10) -> 0.860
           const arrival = 0.08 + (i + 1) * step;
           
-          // Card ONLY begins fading in when the laser physically hits Node (i + 1)
           const fadeInStart = arrival;
-          const fadeInEnd = arrival + 0.015;
-          // Card stays visible during the travel to the next node, and fades out right before hitting next node
-          const fadeOutStart = arrival + step - 0.018;
-          const fadeOutEnd = Math.min(0.99, arrival + step - 0.003);
+          const fadeInEnd = arrival + 0.012;
+          const fadeOutStart = arrival + step - 0.015;
+          const fadeOutEnd = arrival + step - 0.002;
           
           const o = useTransform(
             scrollYProgress,
