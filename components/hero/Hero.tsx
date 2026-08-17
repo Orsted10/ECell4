@@ -3,17 +3,18 @@
 import { useRef } from "react";
 import {
   motion,
-  useMotionValue,
   useReducedMotion,
   useScroll,
-  useSpring,
   useTransform,
 } from "framer-motion";
 import ParticleField from "@/components/core/ParticleField";
+import { SITE } from "@/data/content";
 
-const LETTERS = "BUILD".split("");
-const LAYERS = ["CREATE", "FAIL", "LEARN", "PIVOT", "BUILD", "LAUNCH"];
-const ECELL = "E-CELL".split("");
+const PILLARS = [
+  { num: "01", label: "GENESIS", title: "IDEATION & INCUBATION" },
+  { num: "02", label: "VENTURE", title: "CAPITAL & MENTORSHIP" },
+  { num: "03", label: "MOMENTUM", title: "SCALING TO IMPACT" },
+];
 
 export default function Hero() {
   const ref = useRef<HTMLElement>(null);
@@ -24,143 +25,121 @@ export default function Hero() {
     offset: ["start start", "end end"],
   });
 
-  // scroll phases — strictly distinct stages
-  const split = useTransform(scrollYProgress, [0.05, 0.35], [0, 1]);
-  const buildOpacity = useTransform(scrollYProgress, [0, 0.25, 0.38], [1, 0.7, 0]);
-  const buildScale = useTransform(scrollYProgress, [0, 0.38], [1, 0.88]);
-  
-  const layersOpacity = useTransform(scrollYProgress, [0.18, 0.28, 0.42, 0.5], [0, 1, 1, 0]);
-  
-  const ecellOpacity = useTransform(scrollYProgress, [0.48, 0.65], [0, 1]);
-  const ecellScale = useTransform(scrollYProgress, [0.48, 0.72], [0.92, 1]);
-  const lineScale = useTransform(scrollYProgress, [0.6, 0.75], [0, 1]);
-  const subOpacity = useTransform(scrollYProgress, [0.04, 0.16, 0.28, 0.36], [0, 1, 1, 0]);
+  // Stage 1: Hero Impact Wordmark (0.0 -> 0.4)
+  const heroScale = useTransform(scrollYProgress, [0, 0.35], [1, 0.85]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.25, 0.38], [1, 0.9, 0]);
+  const heroY = useTransform(scrollYProgress, [0, 0.35], [0, -60]);
 
-  // mouse bend — the word physically leans around the cursor
-  const bends = LETTERS.map(() => useMotionValue(0));
-  const bendSprings = bends.map((b) => useSpring(b, { stiffness: 110, damping: 16, mass: 0.6 }));
-  const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  // Stage 2: Mission Reveal & The Core Formula (0.35 -> 0.7)
+  const formulaOpacity = useTransform(scrollYProgress, [0.34, 0.45, 0.65, 0.75], [0, 1, 1, 0]);
+  const formulaY = useTransform(scrollYProgress, [0.34, 0.45, 0.65, 0.75], [50, 0, 0, -40]);
 
-  const onMove = (e: React.MouseEvent) => {
-    if (reduced) return;
-    letterRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const dx = e.clientX - cx;
-      // gaussian falloff around the cursor
-      const g = Math.exp(-(dx * dx) / (2 * 260 * 260));
-      bends[i].set(g * 46 * (i % 2 === 0 ? 1 : -1));
-    });
-  };
-
-  const splitYs = LETTERS.map((_, i) =>
-    useTransform(split, (v) => v * (i - 2) * 120)
-  );
+  // Stage 3: The 3 Launch Pillars (0.7 -> 1.0)
+  const pillarsOpacity = useTransform(scrollYProgress, [0.72, 0.84], [0, 1]);
+  const pillarsY = useTransform(scrollYProgress, [0.72, 0.88], [40, 0]);
 
   return (
     <section
       id="enter"
       ref={ref}
-      onMouseMove={onMove}
-      className="relative h-[320vh] bg-void"
-      aria-label="Build what comes next"
+      className="relative h-[300vh] bg-void text-paper"
+      aria-label="E-Cell Innovation Engine"
     >
-      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden">
-        <ParticleField density={0.5} opacity={0.4} />
+      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden px-6">
+        <ParticleField density={0.4} opacity={0.3} />
 
-        {/* top label */}
-        <div className="absolute left-5 top-24 md:left-8 md:top-28">
-          <p className="label text-ash">
-            E-CELL · CHANDIGARH UNIVERSITY · UTTAR PRADESH
-          </p>
+        {/* Ambient Subtle Architectural Reticle Lines */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-paper/5 to-transparent" />
+          <div className="absolute h-full w-[1px] bg-gradient-to-b from-transparent via-paper/5 to-transparent" />
         </div>
 
-        {/* the giant word */}
-        <motion.h1
-          className="relative z-10 select-none"
-          style={{ opacity: buildOpacity, scale: buildScale }}
-          aria-label="BUILD"
-        >
-          <span className="hero-display flex text-[clamp(110px,34vw,540px)] text-paper">
-            {LETTERS.map((l, i) => (
-              <motion.span
-                key={i}
-                ref={(el) => {
-                  letterRefs.current[i] = el;
-                }}
-                style={{ y: splitYs[i] }}
-                className="inline-block"
-              >
-                <motion.span style={{ y: bendSprings[i] }} className="inline-block">
-                  {l}
-                </motion.span>
-              </motion.span>
-            ))}
-          </span>
-        </motion.h1>
+        {/* Top Floating Institutional Badge */}
+        <div className="absolute left-6 top-24 md:left-12 md:top-28 z-20 flex items-center gap-3 font-mono text-[10px] md:text-[11px] tracking-[0.3em] text-ash">
+          <span className="h-1.5 w-1.5 rounded-full bg-ember animate-ping" />
+          <span>{SITE.university}</span>
+          <span className="text-ash/40">/</span>
+          <span className="text-ember font-semibold">{SITE.campus}</span>
+        </div>
 
-        {/* what comes next — editorial subtitle */}
-        <motion.p
-          className="relative z-10 mt-6 text-center text-lg font-medium text-paper/80 md:text-2xl"
-          style={{ opacity: subOpacity }}
-        >
-          what comes next<span className="text-ember">.</span>
-        </motion.p>
-
-        {/* the layers revealed between the split letters */}
+        {/* ── STAGE 1: MONUMENTAL HERO ARCHITECTURE ── */}
         <motion.div
-          className="absolute inset-x-0 top-1/2 z-[5] -translate-y-1/2"
-          style={{ opacity: layersOpacity }}
-          aria-hidden
+          className="relative z-10 flex flex-col items-center justify-center text-center"
+          style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
         >
-          <div className="flex flex-col items-center gap-[2vh]">
-            {LAYERS.map((w, i) => (
-              <motion.span
-                key={w}
-                className="label text-ash"
-                initial={{ opacity: 0.2 }}
-                animate={{ opacity: [0.25, 0.9, 0.25] }}
-                transition={{
-                  duration: 2.4,
-                  repeat: Infinity,
-                  delay: i * 0.3,
-                  ease: "easeInOut",
-                }}
+          {/* Top Label */}
+          <div className="mb-4 flex items-center gap-4">
+            <div className="h-[1px] w-8 bg-ember" />
+            <span className="font-mono text-xs md:text-sm tracking-[0.4em] uppercase text-paper/80 font-bold">
+              THE MOMENTUM ENGINE
+            </span>
+            <div className="h-[1px] w-8 bg-ember" />
+          </div>
+
+          {/* Master Monolithic Wordmark */}
+          <h1 className="hero-display flex items-center text-[clamp(90px,24vw,340px)] leading-[0.82] tracking-normal text-paper select-none">
+            <span>E</span>
+            <span className="mx-2 md:mx-4 text-ember">—</span>
+            <span>CELL</span>
+          </h1>
+
+          {/* Subtitle Statement */}
+          <p className="mt-6 max-w-xl font-mono text-xs md:text-sm tracking-[0.25em] text-ash uppercase">
+            Where raw curiosity transforms into scalable ventures<span className="text-ember">.</span>
+          </p>
+        </motion.div>
+
+        {/* ── STAGE 2: THE CORE FORMULA REVEAL ── */}
+        <motion.div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center max-w-4xl mx-auto"
+          style={{ opacity: formulaOpacity, y: formulaY, pointerEvents: "none" }}
+        >
+          <span className="font-mono text-[10px] md:text-xs tracking-[0.4em] uppercase text-ember font-bold mb-4">
+            01 // THE THESIS
+          </span>
+          <h2 className="font-display text-[clamp(36px,7vw,96px)] leading-[0.92] text-paper mb-6">
+            IDEAS ARE CHEAP<span className="text-ember">.</span>
+            <br />
+            <span className="text-stroke-paper">EXECUTION IS EVERYTHING.</span>
+          </h2>
+          <p className="text-base md:text-xl text-paper/70 font-light max-w-2xl leading-relaxed">
+            We don&apos;t just host seminars. We build real prototypes, assemble founding teams, and inject venture capital into student-built technology.
+          </p>
+        </motion.div>
+
+        {/* ── STAGE 3: THE THREE LAUNCH PILLARS ── */}
+        <motion.div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 max-w-5xl mx-auto"
+          style={{ opacity: pillarsOpacity, y: pillarsY, pointerEvents: "none" }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
+            {PILLARS.map((p) => (
+              <div
+                key={p.num}
+                className="border border-paper/15 bg-void/80 p-8 flex flex-col justify-between h-[220px] backdrop-blur-sm"
               >
-                {w}
-              </motion.span>
+                <div className="flex justify-between items-center font-mono text-xs text-ash">
+                  <span className="text-ember font-bold">{p.num}</span>
+                  <span className="tracking-[0.2em]">{p.label}</span>
+                </div>
+                <div>
+                  <h3 className="font-display text-2xl md:text-3xl text-paper tracking-wide">
+                    {p.title}
+                  </h3>
+                  <div className="mt-4 h-[1px] w-12 bg-ember" />
+                </div>
+              </div>
             ))}
           </div>
         </motion.div>
 
-        {/* collapse into E-CELL */}
-        <motion.div
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
-          style={{ opacity: ecellOpacity, scale: ecellScale }}
-          aria-label="E-CELL"
-        >
-          <span className="hero-display flex text-[clamp(96px,28vw,440px)] text-paper select-none">
-            {ECELL.map((l, i) => (
-              <span key={i} className="inline-block">
-                {l === "-" ? <span className="text-ember">—</span> : l}
-              </span>
-            ))}
-          </span>
-          <motion.div
-            className="mt-6 h-[2px] w-40 bg-ember md:w-64"
-            style={{ scaleX: lineScale }}
-          />
-          <p className="label mt-4 text-ash">A PLACE TO START.</p>
-        </motion.div>
-
-        {/* scroll hint */}
+        {/* Scroll Indicator */}
         <motion.div
           className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2"
-          style={{ opacity: useTransform(scrollYProgress, [0, 0.06, 0.12], [1, 1, 0]) }}
+          style={{ opacity: useTransform(scrollYProgress, [0, 0.1, 0.85, 0.95], [1, 1, 1, 0]) }}
         >
           <div className="flex flex-col items-center gap-3">
-            <span className="label text-ash">SCROLL</span>
+            <span className="font-mono text-[10px] tracking-[0.3em] text-ash">SCROLL TO DISCOVER</span>
             <span className="block h-10 w-[1.5px] overflow-hidden bg-paper/15">
               <motion.span
                 className="block h-4 w-full bg-ember"
@@ -174,3 +153,4 @@ export default function Hero() {
     </section>
   );
 }
+
