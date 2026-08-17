@@ -97,8 +97,8 @@ export default function WordFormation({
           </motion.div>
 
           {/* Master Display Typography */}
-          <div className="relative flex items-center justify-center overflow-hidden py-4">
-            <h1 className="hero-display flex items-center text-[clamp(80px,18vw,260px)] leading-none tracking-tighter text-paper">
+          <div className="relative flex items-center justify-center overflow-visible px-8 py-6">
+            <h1 className="hero-display flex items-center text-[clamp(80px,18vw,260px)] leading-none tracking-normal text-paper">
               {letters.map((char, index) => {
                 const isDash = char === "-";
                 const isRed = (isEcell && index >= 2) || (word === "BUILD" && index === 0);
@@ -106,10 +106,10 @@ export default function WordFormation({
                 return (
                   <span
                     key={`${char}-${index}`}
-                    className="relative inline-block overflow-hidden"
+                    className="relative inline-block overflow-hidden px-1 py-2"
                   >
                     <motion.span
-                      initial={{ y: "110%", rotateZ: index % 2 === 0 ? 6 : -6, opacity: 0 }}
+                      initial={{ y: "110%", rotateZ: index % 2 === 0 ? 5 : -5, opacity: 0 }}
                       animate={{ y: "0%", rotateZ: 0, opacity: 1 }}
                       exit={{ y: "-110%", opacity: 0 }}
                       transition={{
@@ -131,7 +131,7 @@ export default function WordFormation({
             {/* Chromatic Ghost Shadow Layer for editorial depth */}
             <h1
               aria-hidden
-              className="hero-display pointer-events-none absolute inset-0 flex items-center justify-center text-[clamp(80px,18vw,260px)] leading-none tracking-tighter text-transparent opacity-20"
+              className="hero-display pointer-events-none absolute inset-0 flex items-center justify-center text-[clamp(80px,18vw,260px)] leading-none tracking-normal text-transparent opacity-20 px-8 py-6"
               style={{
                 WebkitTextStroke: "1px rgba(227,30,36,0.6)",
                 transform: "translate(4px, 4px)",
