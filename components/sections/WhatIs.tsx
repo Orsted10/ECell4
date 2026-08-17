@@ -17,66 +17,71 @@ export default function WhatIs() {
     restDelta: 0.001,
   });
 
-  // ── Phase 1: 01 — THE QUESTION (0.00 -> 0.18)
-  const headOpacity = useTransform(smooth, [0, 0.12, 0.18], [1, 1, 0]);
-  const headY = useTransform(smooth, [0, 0.18], [0, -40]);
-  const headScale = useTransform(smooth, [0, 0.18], [1, 0.94]);
+  // ── Phase 1: 01 — THE QUESTION (0.00 -> 0.16)
+  const headOpacity = useTransform(smooth, [0, 0.10, 0.15], [1, 1, 0]);
+  const headY = useTransform(smooth, [0, 0.15], [0, -40]);
+  const headScale = useTransform(smooth, [0, 0.15], [1, 0.94]);
 
-  // ── Phase 2: What It's NOT — Sequential Stagger (0.20 -> 0.42)
-  // Cleanly active between 0.20 and 0.42
+  // ── Phase 2: What It's NOT — Sequential Stagger (0.18 -> 0.50)
+  // Each of the 4 lines gets its own strictly isolated non-overlapping window:
+  // Line 0 ("It's not a classroom."):  0.18 -> 0.24 (fades to 0 by 0.24)
+  // Line 1 ("It's not another club."):  0.26 -> 0.32 (fades to 0 by 0.32)
+  // Line 2 ("It's not a competition."): 0.34 -> 0.40 (fades to 0 by 0.40)
+  // Line 3 ("It's not just events."):   0.42 -> 0.48 (fades to 0 by 0.48)
 
-  // ── Phase 3: IT'S A PLACE TO START (0.44 -> 0.62)
-  const placeOpacity = useTransform(smooth, [0.44, 0.50, 0.58, 0.64], [0, 1, 1, 0]);
-  const placeScale = useTransform(smooth, [0.44, 0.52, 0.58, 0.64], [0.92, 1, 1, 1.05]);
-  const placeY = useTransform(smooth, [0.44, 0.52, 0.58, 0.64], [40, 0, 0, -30]);
+  // ── Phase 3: IT'S A PLACE TO START (0.52 -> 0.68)
+  // Starts strictly at 0.52 (after Line 3 is completely gone at 0.48), holds until 0.64, vanishes by 0.68
+  const placeOpacity = useTransform(smooth, [0.52, 0.56, 0.64, 0.68], [0, 1, 1, 0]);
+  const placeScale = useTransform(smooth, [0.52, 0.57, 0.64, 0.68], [0.92, 1, 1, 1.05]);
+  const placeY = useTransform(smooth, [0.52, 0.57, 0.64, 0.68], [40, 0, 0, -30]);
 
-  // ── Phase 4: KINETIC 8-FORCE LAUNCH & EXTENDED SETTLED HOLD (0.64 -> 1.00)
-  // Flings in from 0.64 to 0.78, then REMAINS PERFECTLY SETTLED AND STILL FROM 0.78 to 0.96 before gently exiting
-  const p4Opacity = useTransform(smooth, [0.64, 0.72, 0.96, 1.00], [0, 1, 1, 0]);
+  // ── Phase 4: KINETIC 8-FORCE LAUNCH & EXTENDED SETTLED HOLD (0.72 -> 1.00)
+  // Starts strictly at 0.72 (after Phase 3 is completely gone at 0.68)
+  const p4Opacity = useTransform(smooth, [0.72, 0.78, 0.96, 1.00], [0, 1, 1, 0]);
 
   // Card 01: IDEAS (From Top-Left)
-  const c1X = useTransform(smooth, [0.64, 0.75], [-280, 0]);
-  const c1Y = useTransform(smooth, [0.64, 0.75], [-240, 0]);
-  const c1R = useTransform(smooth, [0.64, 0.75], [-14, 0]);
-  const c1O = useTransform(smooth, [0.64, 0.72], [0, 1]);
+  const c1X = useTransform(smooth, [0.72, 0.80], [-280, 0]);
+  const c1Y = useTransform(smooth, [0.72, 0.80], [-240, 0]);
+  const c1R = useTransform(smooth, [0.72, 0.80], [-14, 0]);
+  const c1O = useTransform(smooth, [0.72, 0.78], [0, 1]);
 
   // Card 02: PEOPLE (From Top)
-  const c2Y = useTransform(smooth, [0.66, 0.76], [-320, 0]);
-  const c2R = useTransform(smooth, [0.66, 0.76], [8, 0]);
-  const c2O = useTransform(smooth, [0.66, 0.73], [0, 1]);
+  const c2Y = useTransform(smooth, [0.73, 0.81], [-320, 0]);
+  const c2R = useTransform(smooth, [0.73, 0.81], [8, 0]);
+  const c2O = useTransform(smooth, [0.73, 0.79], [0, 1]);
 
   // Card 03: MENTORS (From Top)
-  const c3Y = useTransform(smooth, [0.68, 0.77], [-320, 0]);
-  const c3R = useTransform(smooth, [0.68, 0.77], [-8, 0]);
-  const c3O = useTransform(smooth, [0.68, 0.74], [0, 1]);
+  const c3Y = useTransform(smooth, [0.74, 0.82], [-320, 0]);
+  const c3R = useTransform(smooth, [0.74, 0.82], [-8, 0]);
+  const c3O = useTransform(smooth, [0.74, 0.80], [0, 1]);
 
   // Card 04: EXPERIMENTS (From Top-Right)
-  const c4X = useTransform(smooth, [0.70, 0.78], [280, 0]);
-  const c4Y = useTransform(smooth, [0.70, 0.78], [-240, 0]);
-  const c4R = useTransform(smooth, [0.70, 0.78], [14, 0]);
-  const c4O = useTransform(smooth, [0.70, 0.75], [0, 1]);
+  const c4X = useTransform(smooth, [0.75, 0.83], [280, 0]);
+  const c4Y = useTransform(smooth, [0.75, 0.83], [-240, 0]);
+  const c4R = useTransform(smooth, [0.75, 0.83], [14, 0]);
+  const c4O = useTransform(smooth, [0.75, 0.81], [0, 1]);
 
   // Card 05: FAILURES (From Bottom-Left)
-  const c5X = useTransform(smooth, [0.67, 0.76], [-280, 0]);
-  const c5Y = useTransform(smooth, [0.67, 0.76], [240, 0]);
-  const c5R = useTransform(smooth, [0.67, 0.76], [12, 0]);
-  const c5O = useTransform(smooth, [0.67, 0.73], [0, 1]);
+  const c5X = useTransform(smooth, [0.73, 0.81], [-280, 0]);
+  const c5Y = useTransform(smooth, [0.73, 0.81], [240, 0]);
+  const c5R = useTransform(smooth, [0.73, 0.81], [12, 0]);
+  const c5O = useTransform(smooth, [0.73, 0.79], [0, 1]);
 
   // Card 06: FOUNDERS (From Bottom)
-  const c6Y = useTransform(smooth, [0.69, 0.77], [320, 0]);
-  const c6R = useTransform(smooth, [0.69, 0.77], [-10, 0]);
-  const c6O = useTransform(smooth, [0.69, 0.74], [0, 1]);
+  const c6Y = useTransform(smooth, [0.74, 0.82], [320, 0]);
+  const c6R = useTransform(smooth, [0.74, 0.82], [-10, 0]);
+  const c6O = useTransform(smooth, [0.74, 0.80], [0, 1]);
 
   // Card 07: OPPORTUNITIES (From Bottom)
-  const c7Y = useTransform(smooth, [0.71, 0.78], [320, 0]);
-  const c7R = useTransform(smooth, [0.71, 0.78], [10, 0]);
-  const c7O = useTransform(smooth, [0.71, 0.75], [0, 1]);
+  const c7Y = useTransform(smooth, [0.75, 0.83], [320, 0]);
+  const c7R = useTransform(smooth, [0.75, 0.83], [10, 0]);
+  const c7O = useTransform(smooth, [0.75, 0.81], [0, 1]);
 
   // Card 08: IMPACT (From Bottom-Right)
-  const c8X = useTransform(smooth, [0.73, 0.79], [280, 0]);
-  const c8Y = useTransform(smooth, [0.73, 0.79], [240, 0]);
-  const c8R = useTransform(smooth, [0.73, 0.79], [-12, 0]);
-  const c8O = useTransform(smooth, [0.73, 0.76], [0, 1]);
+  const c8X = useTransform(smooth, [0.76, 0.84], [280, 0]);
+  const c8Y = useTransform(smooth, [0.76, 0.84], [240, 0]);
+  const c8R = useTransform(smooth, [0.76, 0.84], [-12, 0]);
+  const c8O = useTransform(smooth, [0.76, 0.82], [0, 1]);
 
   const cardTransforms = [
     { x: c1X, y: c1Y, r: c1R, o: c1O },
