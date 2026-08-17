@@ -61,9 +61,8 @@ export default function WordFormation({
     >
       {/* Background Architectural Grid Lines */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-paper/10 to-transparent" />
-        <div className="absolute h-full w-[1px] bg-gradient-to-b from-transparent via-paper/10 to-transparent" />
-        <div className="absolute h-[60vh] w-[60vh] rounded-full border border-paper/[0.04]" />
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-paper/5 to-transparent" />
+        <div className="absolute h-full w-[1px] bg-gradient-to-b from-transparent via-paper/5 to-transparent" />
       </div>
 
       {/* Kinetic Typography Stage */}
@@ -157,9 +156,6 @@ export default function WordFormation({
           </motion.div>
         </motion.div>
       </AnimatePresence>
-
-      {/* Ambient Vignette & Grain Filter */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(10,10,10,0.85)_100%)]" />
     </div>
   );
 }

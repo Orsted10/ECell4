@@ -152,9 +152,6 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
           transition={{ duration: 0.85, ease: [0.76, 0, 0.24, 1] }}
           aria-label="Introduction"
         >
-          {/* Subtle Ambient Radial Ember Glow */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(227,30,36,0.08)_0%,transparent_75%)]" />
-
           {/* 1. Dot Phase */}
           <AnimatePresence mode="wait">
             {stage === "dot" && <DotScene key="dot" reduced={reduceMotion} />}
