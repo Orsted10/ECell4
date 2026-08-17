@@ -108,20 +108,19 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
   /* word sequence progression */
   useEffect(() => {
     if (stage !== "words") return;
-    // start on E-CELL for returning visitors
     if (mode === "short") setWordIdx(INTRO_WORDS.length - 1);
   }, [stage, mode]);
 
   const onFormed = () => {
     sound.word();
     if (wordIdx === INTRO_WORDS.length - 1) {
-      after(() => setStage("lockup"), 950);
+      after(() => setStage("lockup"), 1200);
     }
   };
 
   const onGone = () => {
     if (wordIdx < INTRO_WORDS.length - 1) {
-      after(() => setWordIdx((i) => i + 1), 380);
+      setWordIdx((i) => i + 1);
     }
   };
 
@@ -142,7 +141,6 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const inWords = stage === "words" || stage === "lockup";
   const showSkip = stage === "dot" || stage === "text" || stage === "words";
 
   return (
@@ -154,71 +152,54 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
           transition={{ duration: 0.85, ease: [0.76, 0, 0.24, 1] }}
           aria-label="Introduction"
         >
-          {/* Cybernetic grid & subtle ambient radial glow */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(227,30,36,0.06)_0%,transparent_70%)]" />
-          <div 
-            className="pointer-events-none absolute inset-0 opacity-[0.035]"
-            style={{
-              backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
-              backgroundSize: "64px 64px",
-            }}
-          />
+          {/* Subtle Ambient Radial Ember Glow */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(227,30,36,0.08)_0%,transparent_75%)]" />
 
-          {/* the dot phase */}
-          <AnimatePresence>
-            {(stage === "dot" || stage === "text") && (
-              <DotScene key="dot" reduced={reduceMotion} />
+          {/* 1. Dot Phase */}
+          <AnimatePresence mode="wait">
+            {stage === "dot" && <DotScene key="dot" reduced={reduceMotion} />}
+          </AnimatePresence>
+
+          {/* 2. Manifesto Typography Phase */}
+          <AnimatePresence mode="wait">
+            {stage === "text" && <TextScene key="text" reduced={reduceMotion} />}
+          </AnimatePresence>
+
+          {/* 3. Word Kinetic Cycle (IDEA -> QUESTION -> BUILD -> E-CELL) */}
+          <AnimatePresence mode="wait">
+            {stage === "words" && !reduceMotion && (
+              <motion.div
+                key="words-container"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <WordFormation
+                  word={INTRO_WORDS[wordIdx]}
+                  onFormed={onFormed}
+                  onGone={onGone}
+                  nonce={nonce}
+                />
+              </motion.div>
             )}
           </AnimatePresence>
 
-          {/* the words around the dot */}
-          <AnimatePresence>
-            {stage === "text" && (
-              <TextScene key="text" reduced={reduceMotion} />
-            )}
-          </AnimatePresence>
-
-          {/* particle word formation */}
-          <motion.div
-            className="absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: inWords ? 1 : 0,
-              scale: inWords ? 1 : 1.06,
-            }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {inWords && !reduceMotion && (
-              <WordFormation
-                word={INTRO_WORDS[wordIdx]}
-                onFormed={onFormed}
-                onGone={onGone}
-                nonce={nonce}
-              />
-            )}
-            {reduceMotion && inWords && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-display text-6xl text-paper md:text-8xl">
-                  {INTRO_WORDS[wordIdx]}
-                </span>
-              </div>
-            )}
-          </motion.div>
-
-          {/* lockup — logo + university + enter */}
-          <AnimatePresence>
+          {/* 4. Final Master Lockup Scene */}
+          <AnimatePresence mode="wait">
             {stage === "lockup" && (
               <LockupScene key="lockup" onEnter={enter} reduced={reduceMotion} />
             )}
           </AnimatePresence>
 
-          {/* skip */}
+          {/* Skip CTA */}
           <AnimatePresence>
             {showSkip && (
               <motion.button
                 type="button"
                 onClick={skip}
-                className="label absolute right-5 top-5 z-10 flex items-center gap-2 text-paper/70 transition-colors hover:text-ember md:right-8 md:top-6"
+                className="label absolute right-5 top-5 z-20 flex items-center gap-2 text-paper/70 transition-colors hover:text-ember md:right-8 md:top-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
