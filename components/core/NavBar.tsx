@@ -15,33 +15,36 @@ export default function NavBar({ ready }: { ready: boolean }) {
     const onMove = (e: MouseEvent) => setNearTop(e.clientY < 140);
     window.addEventListener("mousemove", onMove, { passive: true });
 
-    // Dynamic contrast detection: check background tone beneath the navbar
+    let animId: number;
+
     const checkBgTone = () => {
       setNearTop(window.scrollY < 80);
 
-      // Check all light sections by bounding box
-      const lightSections = document.querySelectorAll(".bg-paper, #what-is, #ecosystem, #events");
-      let overLight = false;
+      // Query all light canvas sections
+      const lightElements = document.querySelectorAll(
+        "#what-is, #ecosystem, #events, .bg-paper"
+      );
 
-      lightSections.forEach((sec) => {
-        const rect = sec.getBoundingClientRect();
-        // If the top 60px of the screen intersects this light section
-        if (rect.top <= 60 && rect.bottom >= 20) {
-          overLight = true;
+      let isOverLight = false;
+
+      for (let i = 0; i < lightElements.length; i++) {
+        const rect = lightElements[i].getBoundingClientRect();
+        // If the light section overlaps the header area (top 80px)
+        if (rect.top <= 80 && rect.bottom >= 20) {
+          isOverLight = true;
+          break;
         }
-      });
+      }
 
-      setIsDarkBg(!overLight);
+      setIsDarkBg(!isOverLight);
+      animId = requestAnimationFrame(checkBgTone);
     };
 
-    window.addEventListener("scroll", checkBgTone, { passive: true });
-    window.addEventListener("resize", checkBgTone);
-    checkBgTone();
+    animId = requestAnimationFrame(checkBgTone);
 
     return () => {
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("scroll", checkBgTone);
-      window.removeEventListener("resize", checkBgTone);
+      cancelAnimationFrame(animId);
     };
   }, []);
 
