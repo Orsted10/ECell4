@@ -48,10 +48,11 @@ export default function Journey() {
 
       {/* stage blocks travel through the viewport */}
       {STAGES.map((s, i) => {
-        const start = 0.14 + (i / STAGES.length) * 0.86;
-        const end = start + 0.86 / STAGES.length;
-        const o = useTransform(scrollYProgress, [start, start + (end - start) * 0.35, end - (end - start) * 0.3, end], [0, 1, 1, 0]);
-        const y = useTransform(scrollYProgress, [start, end], [70, -70]);
+        // Map 10 stages evenly across the scroll duration (0.10 to 0.95)
+        const start = 0.10 + (i / STAGES.length) * 0.85;
+        const end = start + 0.85 / STAGES.length;
+        const o = useTransform(scrollYProgress, [start, start + 0.03, end - 0.03, end], [0, 1, 1, 0]);
+        const y = useTransform(scrollYProgress, [start, end], [50, -50]);
         const left = i % 2 === 0;
         return (
           <div

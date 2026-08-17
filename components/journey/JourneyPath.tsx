@@ -21,24 +21,26 @@ export interface PathNode {
 
 export function computeNodes(w: number, h: number, count: number): PathNode[] {
   const nodes: PathNode[] = [];
-  const top = h * 0.14;
-  const bottom = h * 0.86;
+  // Ensure comfortable margins so nodes 01 through 10 never clip edges
+  const top = h * 0.16;
+  const bottom = h * 0.84;
   const cx = w / 2;
-  const amp = Math.min(w * 0.22, 230);
+  const amp = Math.min(w * 0.18, 190);
 
   for (let i = 0; i < count; i++) {
     const t = count === 1 ? 0 : i / (count - 1);
     const y = top + (bottom - top) * t;
-    const x = cx + Math.sin(i * 0.88 + 0.45) * amp;
-    // branch tick direction
-    const dir = Math.sin(i * 0.88 + 0.45) > 0 ? 1 : -1;
+    // Harmonious zig-zag wave within safe horizontal bounds
+    const angle = i * 0.95 + 0.35;
+    const x = cx + Math.sin(angle) * amp;
+    const dir = Math.sin(angle) > 0 ? 1 : -1;
     const stage = JOURNEY_STAGES[i] || { n: String(i + 1).padStart(2, "0"), title: `STAGE ${i + 1}` };
 
     nodes.push({
       x,
       y,
-      bx: x + dir * Math.min(w * 0.15, 110),
-      by: y + (i % 2 === 0 ? -1 : 1) * Math.min(h * 0.045, 34),
+      bx: x + dir * Math.min(w * 0.12, 85),
+      by: y + (i % 2 === 0 ? -1 : 1) * Math.min(h * 0.035, 24),
       side: dir,
       label: stage.title,
       stageNum: stage.n,
@@ -116,9 +118,11 @@ export default function JourneyPath({ progress, count }: Props) {
         return;
       }
 
+      // Normalize progress from 0.08 to 0.95 so stage 01 activates right after intro
+      const normalizedP = Math.max(0, Math.min(1, (p - 0.06) / 0.88));
       const totalSegs = nodes.length - 1;
-      const travelled = p * totalSegs;
-      const currentIdx = Math.floor(travelled);
+      const travelled = normalizedP * totalSegs;
+      const currentIdx = Math.min(totalSegs, Math.floor(travelled));
       const currentFrac = travelled - currentIdx;
 
       // Calculate current head position
