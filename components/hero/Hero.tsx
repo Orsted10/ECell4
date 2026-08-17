@@ -24,15 +24,17 @@ export default function Hero() {
     offset: ["start start", "end end"],
   });
 
-  // scroll phases
-  const split = useTransform(scrollYProgress, [0.08, 0.5], [0, 1]);
-  const buildOpacity = useTransform(scrollYProgress, [0, 0.08, 0.52, 0.62], [1, 1, 1, 0]);
-  const buildScale = useTransform(scrollYProgress, [0, 0.4], [1, 0.94]);
-  const layersOpacity = useTransform(scrollYProgress, [0.3, 0.42, 0.6, 0.7], [0, 1, 1, 0]);
-  const ecellOpacity = useTransform(scrollYProgress, [0.58, 0.72], [0, 1]);
-  const ecellScale = useTransform(scrollYProgress, [0.58, 0.8], [0.9, 1]);
-  const lineScale = useTransform(scrollYProgress, [0.6, 0.68], [0, 1]);
-  const subOpacity = useTransform(scrollYProgress, [0.15, 0.3, 0.55, 0.65], [0, 1, 1, 0]);
+  // scroll phases — cleanly separated to prevent double-vision collision
+  const split = useTransform(scrollYProgress, [0.05, 0.45], [0, 1]);
+  const buildOpacity = useTransform(scrollYProgress, [0, 0.28, 0.46], [1, 0.8, 0]);
+  const buildScale = useTransform(scrollYProgress, [0, 0.46], [1, 0.88]);
+  
+  const layersOpacity = useTransform(scrollYProgress, [0.22, 0.36, 0.52, 0.62], [0, 1, 1, 0]);
+  
+  const ecellOpacity = useTransform(scrollYProgress, [0.55, 0.72], [0, 1]);
+  const ecellScale = useTransform(scrollYProgress, [0.55, 0.78], [0.92, 1]);
+  const lineScale = useTransform(scrollYProgress, [0.65, 0.8], [0, 1]);
+  const subOpacity = useTransform(scrollYProgress, [0.08, 0.22, 0.38, 0.48], [0, 1, 1, 0]);
 
   // mouse bend — the word physically leans around the cursor
   const bends = LETTERS.map(() => useMotionValue(0));
