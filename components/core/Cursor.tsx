@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useSpring,
-} from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { isFinePointer } from "@/lib/utils";
 
 const LABELS: Record<string, string> = {
@@ -24,29 +19,45 @@ export default function Cursor() {
   const [enabled, setEnabled] = useState(false);
   const [label, setLabel] = useState<string | null>(null);
   const [pressed, setPressed] = useState(false);
-  const [bursts, setBursts] = useState<{ id: number; x: number; y: number }[]>(
-    []
-  );
   const [hidden, setHidden] = useState(true);
 
-  const mx = useMotionValue(-100);
-  const my = useMotionValue(-100);
-  const dotX = useSpring(mx, { stiffness: 900, damping: 50, mass: 0.4 });
-  const dotY = useSpring(my, { stiffness: 900, damping: 50, mass: 0.4 });
-  const ringX = useSpring(mx, { stiffness: 260, damping: 28, mass: 0.7 });
-  const ringY = useSpring(my, { stiffness: 260, damping: 28, mass: 0.7 });
-
-  const labelTimer = useRef<number | null>(null);
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isFinePointer()) return;
     setEnabled(true);
 
+    let mouseX = -100;
+    let mouseY = -100;
+    let ringX = -100;
+    let ringY = -100;
+    let rafId = 0;
+
     const move = (e: MouseEvent) => {
-      mx.set(e.clientX);
-      my.set(e.clientY);
+      mouseX = e.clientX;
+      mouseY = e.clientY;
       setHidden(false);
+
+      // Instantaneous dot positioning with 0ms lag
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+      }
     };
+
+    // Ultra-snappy 120fps ring interpolation loop
+    const renderRing = () => {
+      // High responsiveness factor (0.35) for crisp, lag-free following
+      ringX += (mouseX - ringX) * 0.35;
+      ringY += (mouseY - ringY) * 0.35;
+
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+      }
+      rafId = requestAnimationFrame(renderRing);
+    };
+    rafId = requestAnimationFrame(renderRing);
+
     const down = () => setPressed(true);
     const up = () => setPressed(false);
     const leave = () => setHidden(true);
@@ -57,20 +68,9 @@ export default function Cursor() {
       const val = t?.getAttribute("data-cursor");
       if (val && LABELS[val]) {
         setLabel(LABELS[val]);
-        if (labelTimer.current) window.clearTimeout(labelTimer.current);
       } else {
-        labelTimer.current = window.setTimeout(() => setLabel(null), 60);
+        setLabel(null);
       }
-    };
-
-    const onBurst = (e: Event) => {
-      const ce = e as CustomEvent<{ x: number; y: number }>;
-      const id = Date.now() + Math.random();
-      setBursts((b) => [...b, { id, x: ce.detail.x, y: ce.detail.y }]);
-      window.setTimeout(
-        () => setBursts((b) => b.filter((x) => x.id !== id)),
-        700
-      );
     };
 
     window.addEventListener("mousemove", move, { passive: true });
@@ -79,17 +79,17 @@ export default function Cursor() {
     document.documentElement.addEventListener("mouseleave", leave);
     document.documentElement.addEventListener("mouseenter", enter);
     document.addEventListener("mouseover", over);
-    window.addEventListener("cursor:burst", onBurst);
+
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mousedown", down);
       window.removeEventListener("mouseup", up);
       document.documentElement.removeEventListener("mouseleave", leave);
       document.documentElement.removeEventListener("mouseenter", enter);
       document.removeEventListener("mouseover", over);
-      window.removeEventListener("cursor:burst", onBurst);
     };
-  }, [mx, my]);
+  }, []);
 
   useEffect(() => {
     if (enabled) document.documentElement.classList.add("has-custom-cursor");
@@ -99,61 +99,49 @@ export default function Cursor() {
 
   if (!enabled) return null;
 
-  const expanded = label !== null || pressed;
+  const expanded = label !== null;
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-[9999]">
-      {/* dot */}
-      <motion.div
-        className="fixed left-0 top-0 h-[6px] w-[6px] rounded-full bg-paper mix-blend-difference"
-        style={{ x: dotX, y: dotY, translateX: "-50%", translateY: "-50%" }}
-        animate={{ opacity: hidden ? 0 : 1, scale: pressed ? 0.4 : 1 }}
-        transition={{ duration: 0.15 }}
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden">
+      {/* Precision Instant Dot (0ms lag, direct GPU transform) */}
+      <div
+        ref={dotRef}
+        style={{ willChange: "transform" }}
+        className={`fixed left-0 top-0 h-[6px] w-[6px] rounded-full bg-paper mix-blend-difference transition-opacity duration-150 ${
+          hidden ? "opacity-0" : "opacity-100"
+        } ${pressed ? "scale-50" : "scale-100"}`}
       />
-      {/* ring / label pill */}
-      <motion.div
-        className="fixed left-0 top-0 flex items-center justify-center rounded-full border border-paper/50 bg-void/40 backdrop-blur-[2px]"
-        style={{ x: ringX, y: ringY, translateX: "-50%", translateY: "-50%" }}
-        animate={{
-          width: expanded ? (label ? 78 : 34) : 34,
-          height: expanded ? (label ? 34 : 34) : 34,
-          opacity: hidden ? 0 : label ? 1 : 0.55,
-          scale: pressed ? 0.85 : 1,
-          backgroundColor: label ? "rgba(227,30,36,0.92)" : "rgba(10,10,10,0.4)",
-          borderColor: label ? "rgba(227,30,36,1)" : "rgba(242,239,233,0.5)",
-        }}
-        transition={{ type: "spring", stiffness: 320, damping: 26 }}
+
+      {/* Responsive Follower Ring / Interactive Pill */}
+      <div
+        ref={ringRef}
+        style={{ willChange: "transform" }}
+        className={`fixed left-0 top-0 flex items-center justify-center rounded-full border transition-all duration-200 ${
+          hidden ? "opacity-0" : "opacity-100"
+        } ${
+          expanded
+            ? "h-9 w-24 border-ember bg-ember/90 shadow-[0_0_20px_rgba(227,30,36,0.5)]"
+            : pressed
+            ? "h-7 w-7 border-ember bg-ember/30 scale-90"
+            : "h-8 w-8 border-paper/40 bg-void/20"
+        }`}
       >
         <AnimatePresence mode="popLayout">
           {label && (
             <motion.span
               key={label}
-              className="font-mono text-[10px] font-bold tracking-[0.18em] text-paper"
+              className="font-mono text-[10px] font-bold tracking-[0.18em] text-paper select-none"
               initial={{ opacity: 0, scale: 0.6 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.12 }}
+              transition={{ duration: 0.1 }}
             >
               {label}
             </motion.span>
           )}
         </AnimatePresence>
-      </motion.div>
-
-      {/* burst easter-egg rings */}
-      <AnimatePresence>
-        {bursts.map((b) => (
-          <motion.div
-            key={b.id}
-            className="fixed h-16 w-16 rounded-full border border-ember"
-            style={{ left: b.x, top: b.y, translateX: "-50%", translateY: "-50%" }}
-            initial={{ scale: 0.2, opacity: 0.9 }}
-            animate={{ scale: 2.6, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          />
-        ))}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }
+
