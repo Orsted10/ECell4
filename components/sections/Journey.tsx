@@ -44,7 +44,6 @@ export default function Journey() {
             now — whether you know it or not.
           </p>
         </motion.div>
-      </div>
 
         {/* Active Stage Card pinned inside viewport */}
         {STAGES.map((s, i) => {
