@@ -272,9 +272,10 @@ export default function JourneyPath({ progress, count }: Props) {
 
       // ── 4. DRAW ALL NODES & BRANCH TELEMETRY ──
       nodes.forEach((n, i) => {
-        const passed = i <= currentIdx;
-        const isActive = i === currentIdx;
-        const isFuture = i > currentIdx;
+        // Since allPoints[0] is ORIGIN, node i (01 Wonder) corresponds to pointIndex = i + 1
+        const pointIdx = i + 1;
+        const passed = pointIdx < currentIdx || (pointIdx === currentIdx && currentFrac >= 0.95);
+        const isActive = currentIdx === pointIdx || (currentIdx === 0 && travelled > 0.8 && i === 0);
 
         // Branch Line
         ctx.save();
