@@ -116,38 +116,64 @@ export default function WhatIs() {
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            PHASE 4: ECOSYSTEM MATRIX (0.78 -> 1.00)
+            PHASE 4: KINETIC ECOSYSTEM CONVERGENCE (0.76 -> 1.00)
            ════════════════════════════════════════════════════════════════════ */}
         <motion.div
           className="absolute inset-0 flex flex-col items-center justify-center px-6 pointer-events-none"
           style={{ opacity: wordsOpacity, y: wordsY }}
         >
-          <div className="mb-8 text-center">
-            <span className="font-mono text-xs tracking-[0.35em] uppercase text-ember font-bold">
-              THE CONVERGENCE
-            </span>
-          </div>
-
-          <div className="relative grid max-w-5xl grid-cols-2 gap-x-8 gap-y-6 text-center md:grid-cols-4 md:gap-x-12">
-            {ECOSYSTEM_WORDS.map((w) => (
-              <span
-                key={w}
-                className="hero-display text-[clamp(22px,4vw,56px)] text-ink/90 tracking-wide"
-              >
-                {w}
+          <div className="mb-10 text-center">
+            <div className="inline-flex items-center gap-3 border border-ember/30 bg-ember/10 px-4 py-1.5 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-ember animate-ping" />
+              <span className="font-mono text-[11px] tracking-[0.35em] uppercase text-ember font-bold">
+                THE CONVERGENCE
               </span>
-            ))}
-            
-            {/* Center glowing Ember Beacon */}
-            <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex h-4 w-4 items-center justify-center">
-              <span className="absolute h-full w-full rounded-full bg-ember animate-ping opacity-75" />
-              <span className="relative h-2 w-2 rounded-full bg-ember" />
-            </span>
+            </div>
           </div>
 
-          <p className="font-mono text-xs md:text-sm tracking-[0.3em] uppercase text-ember font-semibold mt-12">
-            EVERYTHING STARTS WITH AN IDEA.
-          </p>
+          {/* Radial Dynamic Convergence Orbit */}
+          <div className="relative w-full max-w-5xl h-[380px] flex items-center justify-center">
+            
+            {/* Center Pulsing Reactor Dot */}
+            <div className="relative z-10 flex h-14 w-14 items-center justify-center">
+              <div className="absolute h-full w-full rounded-full bg-ember/20 animate-ping" />
+              <div className="absolute h-8 w-8 rounded-full border border-ember/40 bg-ember/10" />
+              <div className="h-3 w-3 rounded-full bg-ember shadow-[0_0_20px_rgba(227,30,36,0.8)]" />
+            </div>
+
+            {/* Orbit Ring Guides */}
+            <div className="pointer-events-none absolute h-[240px] w-[240px] md:h-[300px] md:w-[300px] rounded-full border border-ink/5 border-dashed animate-[spin_60s_linear_infinite]" />
+            <div className="pointer-events-none absolute h-[320px] w-[320px] md:h-[420px] md:w-[420px] rounded-full border border-ink/5" />
+
+            {/* Individual Word Entities Floating In From Their Unique Coordinates */}
+            {ECOSYSTEM_WORDS.map((w, idx) => {
+              // Calculate 8 distinct radial directions around the center
+              const angle = (idx / ECOSYSTEM_WORDS.length) * (2 * Math.PI) - Math.PI / 2;
+              const radius = 170; // px distance from center on desktop
+              const targetX = Math.cos(angle) * radius;
+              const targetY = Math.sin(angle) * (radius * 0.7); // slightly elliptical
+
+              return (
+                <motion.div
+                  key={w}
+                  style={{
+                    transform: `translate(${targetX}px, ${targetY}px)`,
+                  }}
+                  className="absolute flex items-center justify-center"
+                >
+                  <span className="hero-display text-[clamp(18px,3vw,36px)] text-ink/90 font-bold tracking-wider px-3 py-1 bg-paper/90 backdrop-blur-sm border border-ink/10 shadow-sm transition-transform hover:scale-110">
+                    {w}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <motion.div className="mt-8 text-center">
+            <p className="font-mono text-xs md:text-sm tracking-[0.35em] uppercase text-ember font-bold">
+              EVERYTHING STARTS WITH AN IDEA<span className="text-ink">.</span>
+            </p>
+          </motion.div>
         </motion.div>
 
       </div>
