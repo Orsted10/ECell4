@@ -33,7 +33,12 @@ export default function Logo({
       data-cursor="explore"
     >
       <span className="relative flex h-6 w-6 items-center justify-center">
-        <span className="absolute h-2.5 w-2.5 rounded-full bg-paper transition-transform duration-500 group-hover:scale-125" />
+        <span
+          className={cn(
+            "absolute h-2.5 w-2.5 rounded-full transition-all duration-500 group-hover:scale-125",
+            onDark ? "bg-paper" : "bg-ink"
+          )}
+        />
         <span className="absolute h-4 w-4 rounded-full border border-ember/0 transition-all duration-500 group-hover:border-ember/70" />
       </span>
       <span className="flex flex-col leading-none">
