@@ -154,6 +154,16 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
           transition={{ duration: 0.85, ease: [0.76, 0, 0.24, 1] }}
           aria-label="Introduction"
         >
+          {/* Cybernetic grid & subtle ambient radial glow */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(227,30,36,0.06)_0%,transparent_70%)]" />
+          <div 
+            className="pointer-events-none absolute inset-0 opacity-[0.035]"
+            style={{
+              backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
+              backgroundSize: "64px 64px",
+            }}
+          />
+
           {/* the dot phase */}
           <AnimatePresence>
             {(stage === "dot" || stage === "text") && (
