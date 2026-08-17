@@ -1,11 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { ECOSYSTEM_WORDS, WHAT_IS_NOT } from "@/data/content";
-import { MaskText } from "@/components/core/Motion";
-
-const PLACE = "IT'S A PLACE TO START.";
 
 export default function WhatIs() {
   const ref = useRef<HTMLElement>(null);
@@ -14,53 +11,79 @@ export default function WhatIs() {
     offset: ["start start", "end end"],
   });
 
-  const headOpacity = useTransform(scrollYProgress, [0, 0.08, 0.2, 0.3], [1, 1, 0, 0]);
-  const headY = useTransform(scrollYProgress, [0, 0.25], [0, -40]);
+  const smooth = useSpring(scrollYProgress, {
+    stiffness: 90,
+    damping: 22,
+    restDelta: 0.001,
+  });
 
-  const placeOpacity = useTransform(scrollYProgress, [0.5, 0.58], [0, 1]);
-  const placeScale = useTransform(scrollYProgress, [0.5, 0.62], [0.92, 1]);
+  // ── Phase 1: 01 — THE QUESTION (0.00 -> 0.22)
+  const headOpacity = useTransform(smooth, [0, 0.14, 0.22], [1, 1, 0]);
+  const headY = useTransform(smooth, [0, 0.22], [0, -40]);
+  const headScale = useTransform(smooth, [0, 0.22], [1, 0.94]);
 
-  const wordsOpacity = useTransform(scrollYProgress, [0.66, 1], [0, 1]);
-  const wordsY = useTransform(scrollYProgress, [0.66, 1], [60, 0]);
+  // ── Phase 2: What It's NOT — Sequential Stagger (0.24 -> 0.52)
+  // Cleanly active between 0.24 and 0.52
+
+  // ── Phase 3: IT'S A PLACE TO START (0.54 -> 0.74)
+  const placeOpacity = useTransform(smooth, [0.54, 0.60, 0.70, 0.76], [0, 1, 1, 0]);
+  const placeScale = useTransform(smooth, [0.54, 0.62, 0.70, 0.76], [0.92, 1, 1, 1.05]);
+  const placeY = useTransform(smooth, [0.54, 0.62, 0.70, 0.76], [40, 0, 0, -30]);
+
+  // ── Phase 4: ECOSYSTEM MATRIX (0.78 -> 1.00)
+  const wordsOpacity = useTransform(smooth, [0.78, 0.86], [0, 1]);
+  const wordsY = useTransform(smooth, [0.78, 0.88], [40, 0]);
 
   return (
     <section
       id="what-is"
       ref={ref}
-      className="relative h-[560vh] bg-paper text-ink"
+      className="relative h-[480vh] bg-paper text-ink select-none"
       aria-label="What is E-Cell"
     >
       <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden px-6">
-        {/* heading */}
+        
+        {/* ════════════════════════════════════════════════════════════════════
+            PHASE 1: 01 — THE QUESTION (0.00 -> 0.22)
+           ════════════════════════════════════════════════════════════════════ */}
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-          style={{ opacity: headOpacity, y: headY }}
+          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center pointer-events-none"
+          style={{ opacity: headOpacity, y: headY, scale: headScale }}
         >
-          <p className="label-ink mb-6 text-ember">01 — THE QUESTION</p>
-          <h2 className="font-display text-[clamp(44px,9vw,140px)] leading-[0.9] text-ink">
+          <div className="mb-6 inline-flex items-center gap-3 border border-ember/40 bg-ember/10 px-4 py-1.5 backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-ember animate-ping" />
+            <span className="font-mono text-[11px] tracking-[0.35em] uppercase text-ember font-bold">
+              01 — THE QUESTION
+            </span>
+          </div>
+          <h2 className="hero-display text-[clamp(44px,9vw,140px)] leading-[0.9] text-ink">
             OK. BUT WHAT IS{" "}
             <span className="text-ember">E-CELL?</span>
           </h2>
+          <p className="mt-6 font-mono text-xs md:text-sm tracking-[0.3em] uppercase text-ink/60">
+            SCROLL TO DECONSTRUCT THE ECOSYSTEM
+          </p>
         </motion.div>
 
-        {/* denial sequence */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center md:gap-6">
+        {/* ════════════════════════════════════════════════════════════════════
+            PHASE 2: DENIAL SEQUENCE (0.24 -> 0.52)
+           ════════════════════════════════════════════════════════════════════ */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center md:gap-6 pointer-events-none">
           {WHAT_IS_NOT.map((line, i) => {
-            const o = useTransform(
-              scrollYProgress,
-              [0.2 + i * 0.075, 0.26 + i * 0.075, 0.3 + (i + 1) * 0.075, 0.36 + (i + 1) * 0.075],
-              [0, 1, 1, 0]
-            );
-            const s = useTransform(
-              scrollYProgress,
-              [0.2 + i * 0.075, 0.28 + i * 0.075],
-              [0.94, 1]
-            );
+            const start = 0.24 + i * 0.08;
+            const fadeIn = start + 0.03;
+            const hold = start + 0.06;
+            const fadeOut = start + 0.09;
+
+            const o = useTransform(smooth, [start, fadeIn, hold, fadeOut], [0, 1, 1, 0]);
+            const y = useTransform(smooth, [start, fadeIn, hold, fadeOut], [30, 0, 0, -30]);
+            const s = useTransform(smooth, [start, fadeIn], [0.94, 1]);
+
             return (
               <motion.p
                 key={line}
-                style={{ opacity: o, scale: s }}
-                className="font-display text-[clamp(30px,6vw,84px)] leading-none text-ink"
+                style={{ opacity: o, y, scale: s }}
+                className="font-display text-[clamp(32px,6.5vw,88px)] leading-none text-ink tracking-tight font-bold"
               >
                 {line}
               </motion.p>
@@ -68,88 +91,65 @@ export default function WhatIs() {
           })}
         </div>
 
-        {/* IT'S A PLACE TO START. */}
+        {/* ════════════════════════════════════════════════════════════════════
+            PHASE 3: IT'S A PLACE TO START (0.54 -> 0.74)
+           ════════════════════════════════════════════════════════════════════ */}
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-          style={{ opacity: placeOpacity, scale: placeScale }}
+          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center pointer-events-none"
+          style={{ opacity: placeOpacity, scale: placeScale, y: placeY }}
         >
-          <motion.h2
-            className="font-display text-[clamp(46px,10vw,160px)] leading-[0.88] text-ink"
-            aria-label={PLACE}
-          >
-            {PLACE.split(" ").map((w, i) => (
-              <span key={i} className="inline-block overflow-hidden align-bottom">
-                <motion.span
-                  className="inline-block pb-[0.1em]"
-                  initial={{ y: "110%" }}
-                  whileInView={{ y: "0%" }}
-                  viewport={{ once: true, margin: "-10%" }}
-                  transition={{ duration: 0.8, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  {w}
-                </motion.span>
-                {i < PLACE.split(" ").length - 1 && <span>{"\u00A0"}</span>}
-              </span>
-            ))}
-          </motion.h2>
-          <motion.p
-            className="mt-6 max-w-md text-base font-medium text-ink/60 md:text-lg"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-          >
-            Not a place with walls. A place where a dot becomes a line becomes a
-            network becomes an ecosystem.
-          </motion.p>
+          <div className="mb-4 inline-flex items-center gap-2">
+            <span className="h-[1px] w-8 bg-ember" />
+            <span className="font-mono text-xs tracking-[0.35em] uppercase text-ember font-bold">
+              THE DEFINITION
+            </span>
+            <span className="h-[1px] w-8 bg-ember" />
+          </div>
+
+          <h2 className="hero-display text-[clamp(44px,9.5vw,150px)] leading-[0.88] text-ink">
+            IT&apos;S A PLACE TO START<span className="text-ember">.</span>
+          </h2>
+          
+          <p className="mt-8 max-w-xl text-base md:text-xl font-light text-ink/75 leading-relaxed">
+            Not a place with walls. A place where a dot becomes a line becomes a network becomes an ecosystem.
+          </p>
         </motion.div>
 
-        {/* ecosystem words assemble around the particle */}
+        {/* ════════════════════════════════════════════════════════════════════
+            PHASE 4: ECOSYSTEM MATRIX (0.78 -> 1.00)
+           ════════════════════════════════════════════════════════════════════ */}
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center"
+          className="absolute inset-0 flex flex-col items-center justify-center px-6 pointer-events-none"
           style={{ opacity: wordsOpacity, y: wordsY }}
         >
-          <div className="relative grid max-w-4xl grid-cols-2 gap-x-8 gap-y-5 text-center md:grid-cols-4 md:gap-x-12">
-            {ECOSYSTEM_WORDS.map((w, i) => {
-              const o = useTransform(
-                scrollYProgress,
-                [0.68 + i * 0.028, 0.72 + i * 0.028],
-                [0, 1]
-              );
-              const y = useTransform(
-                scrollYProgress,
-                [0.68 + i * 0.028, 0.74 + i * 0.028],
-                [46, 0]
-              );
-              return (
-                <motion.span
-                  key={w}
-                  style={{ opacity: o, y }}
-                  className="font-display text-[clamp(24px,4.5vw,64px)] text-ink/85"
-                >
-                  {w}
-                </motion.span>
-              );
-            })}
-            {/* the particle at the center of it all */}
-            <motion.span
-              className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember md:block"
-              animate={{ scale: [1, 1.5, 1] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            />
+          <div className="mb-8 text-center">
+            <span className="font-mono text-xs tracking-[0.35em] uppercase text-ember font-bold">
+              THE CONVERGENCE
+            </span>
           </div>
-          <p className="label-ink mt-10 text-ember">EVERYTHING STARTS WITH AN IDEA.</p>
+
+          <div className="relative grid max-w-5xl grid-cols-2 gap-x-8 gap-y-6 text-center md:grid-cols-4 md:gap-x-12">
+            {ECOSYSTEM_WORDS.map((w) => (
+              <span
+                key={w}
+                className="hero-display text-[clamp(22px,4vw,56px)] text-ink/90 tracking-wide"
+              >
+                {w}
+              </span>
+            ))}
+            
+            {/* Center glowing Ember Beacon */}
+            <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex h-4 w-4 items-center justify-center">
+              <span className="absolute h-full w-full rounded-full bg-ember animate-ping opacity-75" />
+              <span className="relative h-2 w-2 rounded-full bg-ember" />
+            </span>
+          </div>
+
+          <p className="font-mono text-xs md:text-sm tracking-[0.3em] uppercase text-ember font-semibold mt-12">
+            EVERYTHING STARTS WITH AN IDEA.
+          </p>
         </motion.div>
 
-        {/* quiet handoff strip */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-          style={{ opacity: useTransform(scrollYProgress, [0.9, 1], [0, 1]) }}
-        >
-          <MaskText>
-            <span className="label-ink">KEEP SCROLLING — THE PATH BEGINS BELOW.</span>
-          </MaskText>
-        </motion.div>
       </div>
     </section>
   );
