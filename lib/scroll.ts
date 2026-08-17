@@ -1,6 +1,7 @@
 import Lenis from "lenis";
 
 let lenis: Lenis | null = null;
+let rafId: number | null = null;
 
 export function getLenis() {
   return lenis;
@@ -10,26 +11,47 @@ export function initLenis() {
   if (typeof window === "undefined") return null;
   if (lenis) return lenis;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return null;
+
   lenis = new Lenis({
-    duration: 1.15,
+    duration: 1.2,
     easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    orientation: "vertical",
+    gestureOrientation: "vertical",
     smoothWheel: true,
-    touchMultiplier: 1.4,
+    touchMultiplier: 1.5,
+    wheelMultiplier: 1,
   });
+
+  function raf(time: number) {
+    lenis?.raf(time);
+    rafId = requestAnimationFrame(raf);
+  }
+
+  rafId = requestAnimationFrame(raf);
   return lenis;
 }
 
 export function destroyLenis() {
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
   lenis?.destroy();
   lenis = null;
 }
 
 export function stopScroll() {
   lenis?.stop();
+  if (typeof document !== "undefined") {
+    document.documentElement.classList.add("lenis-stopped");
+  }
 }
 
 export function startScroll() {
   lenis?.start();
+  if (typeof document !== "undefined") {
+    document.documentElement.classList.remove("lenis-stopped");
+  }
 }
 
 export function scrollToId(id: string, offset = 0) {
@@ -46,3 +68,4 @@ export function scrollToTop() {
   if (lenis) lenis.scrollTo(0, { duration: 1.4 });
   else window.scrollTo({ top: 0, behavior: "smooth" });
 }
+

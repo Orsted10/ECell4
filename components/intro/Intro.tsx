@@ -126,8 +126,8 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
 
   const enter = () => {
     sound.enter();
-    startScroll();
     setStage("gone");
+    startScroll();
     onEnter();
   };
 
