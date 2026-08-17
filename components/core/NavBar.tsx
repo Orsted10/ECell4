@@ -5,70 +5,28 @@ import { motion, AnimatePresence } from "framer-motion";
 import Logo from "@/components/core/Logo";
 import MenuOverlay from "@/components/core/MenuOverlay";
 import { scrollToTop } from "@/lib/scroll";
+import { SITE } from "@/data/content";
 
 export default function NavBar({ ready }: { ready: boolean }) {
   const [open, setOpen] = useState(false);
   const [nearTop, setNearTop] = useState(true);
-  const [isDarkBg, setIsDarkBg] = useState(true);
-  const isDarkRef = useRef(true);
-  const nearTopRef = useRef(true);
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      const nextNearTop = e.clientY < 140;
-      if (nearTopRef.current !== nextNearTop) {
-        nearTopRef.current = nextNearTop;
-        setNearTop(nextNearTop);
-      }
-    };
+    const onMove = (e: MouseEvent) => setNearTop(e.clientY < 140);
+    const onScroll = () => setNearTop(window.scrollY < 80);
     window.addEventListener("mousemove", onMove, { passive: true });
-
-    let animId: number;
-
-    const checkBgTone = () => {
-      const isTop = window.scrollY < 80;
-      if (nearTopRef.current !== isTop) {
-        nearTopRef.current = isTop;
-        setNearTop(isTop);
-      }
-
-      // Check all light sections
-      const lightElements = document.querySelectorAll(
-        "#what-is, #ecosystem, #events, .bg-paper"
-      );
-
-      let isOverLight = false;
-      for (let i = 0; i < lightElements.length; i++) {
-        const rect = lightElements[i].getBoundingClientRect();
-        // Generous hysteresis threshold: triggers when light section covers navbar (top <= 50) and leaves only after passing top (bottom >= 40)
-        if (rect.top <= 50 && rect.bottom >= 40) {
-          isOverLight = true;
-          break;
-        }
-      }
-
-      const nextDark = !isOverLight;
-      // Only trigger React re-render when the tone actually flips (zero flicker)
-      if (isDarkRef.current !== nextDark) {
-        isDarkRef.current = nextDark;
-        setIsDarkBg(nextDark);
-      }
-
-      animId = requestAnimationFrame(checkBgTone);
-    };
-
-    animId = requestAnimationFrame(checkBgTone);
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
       window.removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(animId);
+      window.removeEventListener("scroll", onScroll);
     };
   }, []);
 
   return (
     <>
       <motion.header
-        className="fixed left-0 right-0 top-0 z-[100] flex items-start justify-between px-5 py-4 transition-colors duration-300 md:px-8 md:py-6"
+        className="fixed left-0 right-0 top-0 z-[100] flex items-start justify-between px-5 py-4 mix-blend-difference pointer-events-none md:px-8 md:py-6"
         initial={{ y: -40, opacity: 0 }}
         animate={{
           y: ready ? 0 : -40,
@@ -83,36 +41,49 @@ export default function NavBar({ ready }: { ready: boolean }) {
             // hidden interaction: double-clicking the mark replays the intro
             window.dispatchEvent(new CustomEvent("ecell:replay-intro"));
           }}
-          className="group"
+          className="group pointer-events-auto"
           aria-label="E-Cell — back to top. Double-click to replay the intro."
           data-cursor="go"
         >
-          <Logo onDark={isDarkBg} />
+          <span className="flex items-center gap-3">
+            <span className="relative flex h-6 w-6 items-center justify-center">
+              <span className="absolute h-2.5 w-2.5 rounded-full bg-white transition-transform duration-300 group-hover:scale-125" />
+              <span className="absolute h-4 w-4 rounded-full border border-white/20 transition-all duration-300 group-hover:border-white/60" />
+            </span>
+            <span className="flex flex-col leading-none">
+              <span className="font-display text-[22px] tracking-[0.04em] text-white">
+                E-CELL
+              </span>
+              <span className="label mt-1 font-mono text-[10px] text-white/70">
+                {SITE.campus}
+              </span>
+            </span>
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setOpen(true)}
           data-cursor="go"
-          className="group flex items-center gap-3"
+          className="group flex items-center gap-3 pointer-events-auto"
           aria-expanded={open}
           aria-label="Open menu"
         >
           <span
-            className={`label font-mono text-xs transition-colors duration-300 ${
-              isDarkBg ? "text-paper" : "text-ink font-bold"
-            } ${nearTop ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`}
+            className={`label font-mono text-xs text-white transition-opacity duration-300 ${
+              nearTop ? "opacity-100" : "opacity-40 group-hover:opacity-100"
+            }`}
           >
             Menu
           </span>
           <span className="flex h-8 w-8 flex-col items-center justify-center gap-[5px]">
             <span
-              className={`block h-[1.5px] w-7 transition-colors duration-300 ${
-                isDarkBg ? "bg-paper" : "bg-ink"
-              } ${nearTop ? "" : "opacity-40 group-hover:opacity-100"}`}
+              className={`block h-[1.5px] w-7 bg-white transition-all duration-300 ${
+                nearTop ? "" : "opacity-40 group-hover:opacity-100"
+              }`}
             />
             <span
-              className={`block h-[1.5px] w-4 bg-ember transition-all duration-300 ${
+              className={`block h-[1.5px] w-4 bg-white transition-all duration-300 ${
                 nearTop ? "" : "opacity-70 group-hover:opacity-100"
               }`}
             />
