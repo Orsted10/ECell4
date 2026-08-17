@@ -24,17 +24,17 @@ export default function Hero() {
     offset: ["start start", "end end"],
   });
 
-  // scroll phases — cleanly separated to prevent double-vision collision
-  const split = useTransform(scrollYProgress, [0.05, 0.45], [0, 1]);
-  const buildOpacity = useTransform(scrollYProgress, [0, 0.28, 0.46], [1, 0.8, 0]);
-  const buildScale = useTransform(scrollYProgress, [0, 0.46], [1, 0.88]);
+  // scroll phases — strictly distinct stages
+  const split = useTransform(scrollYProgress, [0.05, 0.35], [0, 1]);
+  const buildOpacity = useTransform(scrollYProgress, [0, 0.25, 0.38], [1, 0.7, 0]);
+  const buildScale = useTransform(scrollYProgress, [0, 0.38], [1, 0.88]);
   
-  const layersOpacity = useTransform(scrollYProgress, [0.22, 0.36, 0.52, 0.62], [0, 1, 1, 0]);
+  const layersOpacity = useTransform(scrollYProgress, [0.18, 0.28, 0.42, 0.5], [0, 1, 1, 0]);
   
-  const ecellOpacity = useTransform(scrollYProgress, [0.55, 0.72], [0, 1]);
-  const ecellScale = useTransform(scrollYProgress, [0.55, 0.78], [0.92, 1]);
-  const lineScale = useTransform(scrollYProgress, [0.65, 0.8], [0, 1]);
-  const subOpacity = useTransform(scrollYProgress, [0.08, 0.22, 0.38, 0.48], [0, 1, 1, 0]);
+  const ecellOpacity = useTransform(scrollYProgress, [0.48, 0.65], [0, 1]);
+  const ecellScale = useTransform(scrollYProgress, [0.48, 0.72], [0.92, 1]);
+  const lineScale = useTransform(scrollYProgress, [0.6, 0.75], [0, 1]);
+  const subOpacity = useTransform(scrollYProgress, [0.04, 0.16, 0.28, 0.36], [0, 1, 1, 0]);
 
   // mouse bend — the word physically leans around the cursor
   const bends = LETTERS.map(() => useMotionValue(0));
@@ -136,22 +136,15 @@ export default function Hero() {
 
         {/* collapse into E-CELL */}
         <motion.div
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
           style={{ opacity: ecellOpacity, scale: ecellScale }}
           aria-label="E-CELL"
         >
-          <span className="hero-display flex text-[clamp(96px,28vw,440px)] text-paper">
+          <span className="hero-display flex text-[clamp(96px,28vw,440px)] text-paper select-none">
             {ECELL.map((l, i) => (
-              <motion.span
-                key={i}
-                className="inline-block"
-                initial={{ y: 60, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              >
+              <span key={i} className="inline-block">
                 {l === "-" ? <span className="text-ember">—</span> : l}
-              </motion.span>
+              </span>
             ))}
           </span>
           <motion.div
