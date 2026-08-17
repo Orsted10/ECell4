@@ -124,8 +124,8 @@ export default function JourneyPath({ progress, count }: Props) {
       // Full points list including entry origin dot as index 0
       const allPoints: PathNode[] = [{ x: cx, y: originY, bx: cx, by: originY, side: 0, label: "ORIGIN", stageNum: "00" }, ...nodes];
 
-      // Normalize progress from 0.08 to 0.92 to perfectly match card arrival schedule
-      const normalizedP = Math.max(0, Math.min(1, (p - 0.08) / 0.84));
+      // Normalize progress from 0.08 to 0.96 to perfectly match card arrival schedule
+      const normalizedP = Math.max(0, Math.min(1, (p - 0.08) / 0.88));
       const totalSegs = allPoints.length - 1;
       const travelled = normalizedP * totalSegs;
       const currentIdx = Math.min(totalSegs, Math.floor(travelled));
