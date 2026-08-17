@@ -46,73 +46,90 @@ export default function Journey() {
         </motion.div>
       </div>
 
-      {/* stage blocks travel through the viewport */}
-      {STAGES.map((s, i) => {
-        // Map 10 stages evenly across the scroll duration (0.11 to 0.95)
-        const start = 0.11 + (i / STAGES.length) * 0.84;
-        const end = start + 0.84 / STAGES.length;
-        const o = useTransform(scrollYProgress, [start, start + 0.03, end - 0.03, end], [0, 1, 1, 0]);
-        const y = useTransform(scrollYProgress, [start, end], [50, -50]);
-        const left = i % 2 === 0;
-        return (
-          <div
-            key={s.n}
-            className="relative z-10 flex h-screen items-center px-6 md:px-[10vw]"
-          >
+        {/* Active Stage Card pinned inside viewport */}
+        {STAGES.map((s, i) => {
+          // 10 stages cleanly mapped across scroll range (0.10 -> 0.96)
+          const start = 0.10 + (i / STAGES.length) * 0.86;
+          const end = start + 0.86 / STAGES.length;
+          
+          const o = useTransform(
+            scrollYProgress,
+            [start - 0.015, start + 0.02, end - 0.02, end + 0.015],
+            [0, 1, 1, 0]
+          );
+          const y = useTransform(
+            scrollYProgress,
+            [start - 0.015, start + 0.02, end - 0.02, end + 0.015],
+            [40, 0, 0, -40]
+          );
+          const scale = useTransform(
+            scrollYProgress,
+            [start - 0.015, start + 0.02, end - 0.02, end + 0.015],
+            [0.96, 1, 1, 0.96]
+          );
+          
+          const left = i % 2 === 0;
+
+          return (
             <motion.div
-              style={{ opacity: o, y }}
-              className={`w-full max-w-lg ${
-                left ? "md:mr-auto" : "md:ml-auto"
-              } ${i === STAGES.length - 1 ? "pb-24" : ""}`}
+              key={s.n}
+              style={{ opacity: o, y, scale }}
+              className={`absolute inset-0 z-10 flex items-center px-6 md:px-[10vw] pointer-events-none`}
             >
-              <div className="relative overflow-hidden rounded-sm border border-line bg-void/60 p-7 backdrop-blur-md transition-all duration-500 hover:border-ember/40 md:p-9">
-                {/* Tech corner tick */}
-                <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-ember" />
-                <span className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-ember/40" />
+              <div
+                className={`w-full max-w-lg pointer-events-auto ${
+                  left ? "md:mr-auto" : "md:ml-auto"
+                }`}
+              >
+                <div className="relative overflow-hidden rounded-sm border border-line bg-void/80 p-7 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-500 hover:border-ember/40 md:p-9">
+                  {/* Tech corner ticks */}
+                  <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-ember" />
+                  <span className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-ember/40" />
 
-                <div className="flex items-baseline justify-between gap-4 border-b border-line pb-4">
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-display text-5xl text-ember md:text-6xl">
-                      {s.n}
+                  <div className="flex items-baseline justify-between gap-4 border-b border-line pb-4">
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-display text-5xl text-ember md:text-6xl">
+                        {s.n}
+                      </span>
+                      <h3 className="font-display text-3xl tracking-wide text-paper md:text-4xl">
+                        {s.title}
+                      </h3>
+                    </div>
+                    <span className="label text-[10px] text-paper/40">
+                      STAGE {s.n}/{String(STAGES.length).padStart(2, "0")}
                     </span>
-                    <h3 className="font-display text-3xl tracking-wide text-paper md:text-4xl">
-                      {s.title}
-                    </h3>
                   </div>
-                  <span className="label text-[10px] text-paper/40">
-                    STAGE {s.n}/{String(STAGES.length).padStart(2, "0")}
-                  </span>
-                </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {s.words.map((w, wi) => (
-                    <span
-                      key={wi}
-                      className="label rounded-full border border-paper/10 bg-paper/[0.03] px-2.5 py-1 text-[10px] text-ash"
-                    >
-                      {w}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {s.words.map((w, wi) => (
+                      <span
+                        key={wi}
+                        className="label rounded-full border border-paper/10 bg-paper/[0.03] px-2.5 py-1 text-[10px] text-ash"
+                      >
+                        {w}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="mt-5 text-[15px] leading-relaxed text-paper/80">
+                    {s.text}
+                  </p>
+
+                  <div className="mt-6 flex items-center justify-between pt-3 text-[11px] text-paper/40">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember" />
+                      <span className="label text-paper/60">ACTIVE TRAJECTORY</span>
+                    </div>
+                    <span className="font-mono text-[10px] text-ember/80">
+                      NODE_{s.n} // OK
                     </span>
-                  ))}
-                </div>
-
-                <p className="mt-5 text-[15px] leading-relaxed text-paper/80">
-                  {s.text}
-                </p>
-
-                <div className="mt-6 flex items-center justify-between pt-3 text-[11px] text-paper/40">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember" />
-                    <span className="label text-paper/60">ACTIVE TRAJECTORY</span>
                   </div>
-                  <span className="font-mono text-[10px] text-ember/80">
-                    NODE_{s.n} // OK
-                  </span>
                 </div>
               </div>
             </motion.div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </section>
   );
 }
