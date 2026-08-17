@@ -31,18 +31,12 @@ export default function Intro({ onEnter }: { onEnter: () => void }) {
     timers.current = [];
   }, []);
 
-  /* memory + replay hook */
+  /* Always play the full cinematic experience from the beginning */
   useEffect(() => {
     sound.init();
-    let seen = false;
-    try {
-      seen = localStorage.getItem(STORE_KEY) === "1";
-    } catch {
-      /* ignore */
-    }
-    setMode(seen ? "short" : "full");
-    if (seen) setStage("words");
-    if (seen) setWordIdx(INTRO_WORDS.length - 1);
+    setMode("full");
+    setStage("dot");
+    setWordIdx(0);
     setReady(true);
 
     const onReplay = () => {
