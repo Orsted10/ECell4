@@ -19,43 +19,29 @@ export default function NavBar({ ready }: { ready: boolean }) {
     const checkBgTone = () => {
       setNearTop(window.scrollY < 80);
 
-      // Probe element 50px from top center
-      const probeX = Math.min(window.innerWidth / 2, 100);
-      const probeY = 50;
-      const el = document.elementFromPoint(probeX, probeY);
-      if (!el) return;
+      // Check all light sections by bounding box
+      const lightSections = document.querySelectorAll(".bg-paper, #what-is, #ecosystem, #events");
+      let overLight = false;
 
-      // Find closest section
-      const section = el.closest("section, header, footer, main > div");
-      if (section) {
-        const bg = window.getComputedStyle(section).backgroundColor;
-        // If background has paper / light tone (rgb value > 150) or section has bg-paper
-        if (
-          section.classList.contains("bg-paper") ||
-          section.id === "what-is" ||
-          section.id === "ecosystem" ||
-          section.id === "events"
-        ) {
-          setIsDarkBg(false);
-          return;
+      lightSections.forEach((sec) => {
+        const rect = sec.getBoundingClientRect();
+        // If the top 60px of the screen intersects this light section
+        if (rect.top <= 60 && rect.bottom >= 20) {
+          overLight = true;
         }
-        // Compute brightness if rgb
-        const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-        if (match) {
-          const brightness = (parseInt(match[1]) * 299 + parseInt(match[2]) * 587 + parseInt(match[3]) * 114) / 1000;
-          setIsDarkBg(brightness < 128);
-          return;
-        }
-      }
-      setIsDarkBg(true);
+      });
+
+      setIsDarkBg(!overLight);
     };
 
     window.addEventListener("scroll", checkBgTone, { passive: true });
+    window.addEventListener("resize", checkBgTone);
     checkBgTone();
 
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("scroll", checkBgTone);
+      window.removeEventListener("resize", checkBgTone);
     };
   }, []);
 

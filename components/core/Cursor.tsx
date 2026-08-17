@@ -85,10 +85,10 @@ export default function Cursor() {
           hidden ? "opacity-0" : "opacity-100"
         } ${
           isInteractive
-            ? "h-9 w-24 border border-ember bg-ember/90 shadow-[0_0_20px_rgba(227,30,36,0.5)]"
+            ? "h-9 w-24 border-2 border-white bg-ember shadow-[0_0_25px_rgba(227,30,36,0.8)]"
             : pressed
-            ? "h-2 w-2 bg-ember"
-            : "h-[8px] w-[8px] bg-paper mix-blend-difference"
+            ? "h-2.5 w-2.5 bg-ember shadow-[0_0_12px_rgba(227,30,36,1)]"
+            : "h-[9px] w-[9px] bg-ember shadow-[0_0_14px_rgba(227,30,36,0.95)]"
         }`}
       >
         <AnimatePresence mode="popLayout">

@@ -261,34 +261,62 @@ function DotScene({ reduced }: { reduced: boolean }) {
 /* ── the "what if" typography ───────────────────────────────── */
 function TextScene({ reduced }: { reduced: boolean }) {
   const lines = [
-    { t: "What if…", cls: "md:absolute md:left-[10%] md:top-[26%]", delay: 0 },
+    { t: "What if…", tag: "HYPOTHESIS 01", cls: "md:absolute md:left-[12%] md:top-[22%]", delay: 0 },
     {
       t: "…you built the thing…",
-      cls: "md:absolute md:right-[8%] md:top-[44%] md:text-right",
+      tag: "CATALYST 02",
+      cls: "md:absolute md:right-[12%] md:top-[42%] md:text-right",
       delay: 1.05,
     },
     {
       t: "…you can't stop thinking about?",
-      cls: "md:absolute md:left-[14%] md:bottom-[22%]",
-      delay: 2.2,
+      tag: "CONVICTION 03",
+      cls: "md:absolute md:left-[16%] md:bottom-[24%]",
+      delay: 2.1,
     },
   ];
+
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 md:gap-0">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 overflow-hidden px-6 md:gap-0">
+      {/* Background ambient cosmic glow and architectural telemetry */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="h-[450px] w-[450px] rounded-full bg-ember/5 blur-[120px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(242,239,233,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      </div>
+
+      {/* Crosshair coordinate markers */}
+      <div className="pointer-events-none absolute left-8 top-8 font-mono text-[10px] tracking-[0.3em] text-ash/40">
+        LAT_28.6139 // LON_77.2090
+      </div>
+      <div className="pointer-events-none absolute bottom-8 right-8 font-mono text-[10px] tracking-[0.3em] text-ash/40">
+        ORIGIN_VECTOR // SEED_NODE
+      </div>
+
+      {/* Central Pulsing Origin Ring */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="h-64 w-64 rounded-full border border-paper/[0.04] animate-[spin_60s_linear_infinite]" />
+        <div className="h-96 w-96 rounded-full border border-dashed border-ember/[0.06] animate-[spin_40s_linear_infinite_reverse]" />
+      </div>
+
       {lines.map((l) => (
-        <motion.p
+        <motion.div
           key={l.t}
-          className={`font-display text-[26px] tracking-wide text-paper md:text-4xl ${l.cls}`}
-          initial={{ opacity: 0, y: 24, filter: "blur(6px)" }}
+          className={`${l.cls} z-10 flex flex-col`}
+          initial={{ opacity: 0, y: 28, filter: "blur(8px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{
-            duration: reduced ? 0.01 : 0.8,
+            duration: reduced ? 0.01 : 0.85,
             delay: reduced ? 0 : l.delay,
             ease: [0.16, 1, 0.3, 1],
           }}
         >
-          {l.t}
-        </motion.p>
+          <span className="mb-2 font-mono text-[10px] uppercase tracking-[0.35em] text-ember/80 font-bold">
+            [{l.tag}]
+          </span>
+          <p className="font-display text-[clamp(28px,4.5vw,56px)] leading-[1.1] tracking-tight text-paper">
+            {l.t}
+          </p>
+        </motion.div>
       ))}
     </div>
   );
