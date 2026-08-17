@@ -1,0 +1,17 @@
+
+> ecell-cuup@0.1.0 dev
+> next dev --port 3100
+
+▲ Next.js 16.3.0 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://10.26.9.194:3100
+✓ Ready in 1284ms
+✓ Running next.config.mjs took 26ms
+
+ GET / 200 in 1052ms (next.js: 480ms, application-code: 573ms)
+ GET / 200 in 184ms (next.js: 11ms, application-code: 173ms)
+ GET / 200 in 178ms (next.js: 11ms, application-code: 168ms)
+ GET / 200 in 402ms (next.js: 14ms, application-code: 387ms)
+ GET / 200 in 277ms (next.js: 11ms, application-code: 267ms)
+ GET / 200 in 159ms (next.js: 11ms, application-code: 148ms)
+[?25h
