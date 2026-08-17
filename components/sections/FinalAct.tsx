@@ -84,9 +84,6 @@ export default function FinalAct() {
           {flashOn && (
             <WordFormation
               word="E-CELL"
-              size={0.42}
-              quality={0.75}
-              redRatio={0.12}
             />
           )}
         </motion.div>
