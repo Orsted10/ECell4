@@ -245,29 +245,6 @@ export default function JourneyPath({ progress, count }: Props) {
         ctx.stroke();
 
         ctx.restore();
-
-        // ── Traveling Electric Pulse Packet ──
-        const pulseT = (now / 2200) % 1;
-        const pulseTravel = pulseT * travelled;
-        const pulseIdx = Math.floor(pulseTravel);
-        const pulseFrac = pulseTravel - pulseIdx;
-        if (pulseIdx < totalSegs) {
-          const pa = nodes[pulseIdx];
-          const pb = nodes[pulseIdx + 1];
-          const px = pa.x + (pb.x - pa.x) * pulseFrac;
-          const py = pa.y + (pb.y - pa.y) * pulseFrac;
-
-          ctx.save();
-          const pulseGrad = ctx.createRadialGradient(px, py, 0, px, py, 14);
-          pulseGrad.addColorStop(0, "rgba(255,255,255,1)");
-          pulseGrad.addColorStop(0.35, "rgba(227,30,36,0.85)");
-          pulseGrad.addColorStop(1, "rgba(227,30,36,0)");
-          ctx.fillStyle = pulseGrad;
-          ctx.beginPath();
-          ctx.arc(px, py, 14, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
       }
 
       // ── 4. DRAW ALL NODES & BRANCH TELEMETRY ──

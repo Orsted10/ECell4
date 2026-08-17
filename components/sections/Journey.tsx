@@ -15,8 +15,8 @@ export default function Journey() {
     offset: ["start start", "end end"],
   });
 
-  const introOpacity = useTransform(scrollYProgress, [0, 0.04, 0.1, 0.16], [0, 1, 1, 0]);
-  const introY = useTransform(scrollYProgress, [0, 0.12], [40, 0]);
+  const introOpacity = useTransform(scrollYProgress, [0, 0.03, 0.07, 0.09], [0, 1, 1, 0]);
+  const introY = useTransform(scrollYProgress, [0, 0.09], [30, -30]);
 
   return (
     <section
@@ -32,11 +32,11 @@ export default function Journey() {
 
         {/* opening statement */}
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center pointer-events-none"
           style={{ opacity: introOpacity, y: introY }}
         >
           <p className="label mb-5 text-ember">02 — THE JOURNEY</p>
-          <h2 className="font-display text-[clamp(40px,8vw,120px)] leading-[0.9] text-paper">
+          <h2 className="hero-display text-[clamp(40px,8vw,120px)] leading-[0.9] text-paper">
             ONE IDEA. TEN STAGES.
           </h2>
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-paper/60">
@@ -48,9 +48,9 @@ export default function Journey() {
 
       {/* stage blocks travel through the viewport */}
       {STAGES.map((s, i) => {
-        // Map 10 stages evenly across the scroll duration (0.10 to 0.95)
-        const start = 0.10 + (i / STAGES.length) * 0.85;
-        const end = start + 0.85 / STAGES.length;
+        // Map 10 stages evenly across the scroll duration (0.11 to 0.95)
+        const start = 0.11 + (i / STAGES.length) * 0.84;
+        const end = start + 0.84 / STAGES.length;
         const o = useTransform(scrollYProgress, [start, start + 0.03, end - 0.03, end], [0, 1, 1, 0]);
         const y = useTransform(scrollYProgress, [start, end], [50, -50]);
         const left = i % 2 === 0;
