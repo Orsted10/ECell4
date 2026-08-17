@@ -11,9 +11,11 @@ import WordFormation from "@/components/intro/WordFormation";
 import { SITE } from "@/data/content";
 import { Magnetic } from "@/components/core/Motion";
 import { scrollToId } from "@/lib/scroll";
+import FoundryModal from "@/components/foundry/FoundryModal";
 
 export default function FinalAct() {
   const ref = useRef<HTMLElement>(null);
+  const [foundryOpen, setFoundryOpen] = useState(false);
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end end"],
@@ -108,11 +110,11 @@ export default function FinalAct() {
             <Magnetic>
               <button
                 type="button"
-                onClick={() => scrollToId("enter")}
+                onClick={() => setFoundryOpen(true)}
                 data-cursor="enter"
-                className="border border-ember bg-ember px-7 py-4"
+                className="border border-ember bg-ember px-7 py-4 shadow-[0_0_25px_rgba(227,30,36,0.5)] transition-all hover:scale-105"
               >
-                <span className="label text-paper">JOIN E-CELL →</span>
+                <span className="label text-paper font-bold">JOIN THE FOUNDRY →</span>
               </button>
             </Magnetic>
             <Magnetic>
@@ -148,6 +150,8 @@ export default function FinalAct() {
           <span className="label text-ember">{SITE.campus}</span>
         </motion.div>
       </div>
+
+      <FoundryModal isOpen={foundryOpen} onClose={() => setFoundryOpen(false)} />
     </section>
   );
 }
