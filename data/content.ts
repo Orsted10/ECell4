@@ -42,7 +42,7 @@ export const NAV_SECTIONS = [
   { id: "start", n: "10", label: "START SOMETHING" },
 ];
 
-export const INTRO_WORDS = ["IDEA", "QUESTION", "BUILD", "E-CELL"] as const;
+export const INTRO_WORDS = ["IDEA", "QUESTION", "BUILD"] as const;
 
 /* ── THE JOURNEY — 10 stages of the entrepreneurial lifecycle ── */
 export const JOURNEY_STAGES = [
