@@ -22,7 +22,7 @@ export interface PathNode {
 export function computeNodes(w: number, h: number, count: number): PathNode[] {
   const nodes: PathNode[] = [];
   // Ensure comfortable margins so nodes 01 through 10 never clip edges
-  const top = h * 0.16;
+  const top = h * 0.18;
   const bottom = h * 0.84;
   const cx = w / 2;
   const amp = Math.min(w * 0.18, 190);
@@ -181,20 +181,27 @@ export default function JourneyPath({ progress, count }: Props) {
       // ── 2. BASE TRAJECTORY (FAINT BLUEPRINT LINE) ──
       ctx.save();
       ctx.beginPath();
+      // Entry vector from top center
+      ctx.moveTo(cx, top - 60);
       nodes.forEach((n, i) => {
-        if (i === 0) ctx.moveTo(n.x, n.y);
-        else ctx.lineTo(n.x, n.y);
+        ctx.lineTo(n.x, n.y);
       });
       ctx.strokeStyle = "rgba(242,239,233,0.12)";
       ctx.lineWidth = 1.2;
       ctx.stroke();
 
+      // Entry origin beacon dot
+      ctx.beginPath();
+      ctx.arc(cx, top - 60, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(242,239,233,0.35)";
+      ctx.fill();
+
       // Secondary parallel dashed grid rail
       ctx.beginPath();
+      ctx.moveTo(cx + 6, top - 60);
       nodes.forEach((n, i) => {
         const ox = n.side * 6;
-        if (i === 0) ctx.moveTo(n.x + ox, n.y);
-        else ctx.lineTo(n.x + ox, n.y);
+        ctx.lineTo(n.x + ox, n.y);
       });
       ctx.strokeStyle = "rgba(242,239,233,0.04)";
       ctx.setLineDash([4, 8]);
@@ -204,14 +211,14 @@ export default function JourneyPath({ progress, count }: Props) {
       ctx.restore();
 
       // ── 3. ACTIVE GLOWING TRAVELLED PATH (MULTI-PASS GLOW) ──
-      if (travelled > 0.001) {
+      if (travelled > 0.001 || p > 0.01) {
         ctx.save();
 
         // Pass A: Wide Soft Bloom
         ctx.beginPath();
+        ctx.moveTo(cx, top - 60);
         nodes.forEach((n, i) => {
-          if (i === 0) ctx.moveTo(n.x, n.y);
-          else if (i <= currentIdx) ctx.lineTo(n.x, n.y);
+          if (i <= currentIdx) ctx.lineTo(n.x, n.y);
         });
         if (currentIdx < totalSegs) {
           ctx.lineTo(hx, hy);
