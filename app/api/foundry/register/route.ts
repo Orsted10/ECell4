@@ -5,6 +5,18 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 const groqApiKey = process.env.GROQ_API_KEY;
 const groq = groqApiKey ? new Groq({ apiKey: groqApiKey }) : null;
 
+// Heuristic check for gibberish, spam, or placeholder answers
+function isLowEffortInput(text: string): boolean {
+  if (!text) return true;
+  const trimmed = text.trim();
+  if (trimmed.length < 15) return true;
+  // Check if string is just repeated digits/letters (e.g. "2323", "aaaa", "asdfasdf")
+  const uniqueChars = new Set(trimmed.toLowerCase().replace(/\s+/g, ""));
+  if (uniqueChars.size <= 3) return true;
+  if (/^(test|asdf|qwerty|none|na|nil|1234|2323)$/i.test(trimmed)) return true;
+  return false;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -32,20 +44,37 @@ export async function POST(req: Request) {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const founderId = `FD-2026-${randomSuffix}`;
 
-    // Default heuristic scoring fallback
-    let founderScore = 88;
-    let scoreProblemSolving = 85;
-    let scoreLeadership = 82;
-    let scoreExecution = 92;
-    let scoreOverall = 87;
-    let aiAssessmentSummary =
-      "Candidate demonstrates high bias for action, clear articulation of real-world friction, and pragmatic engineering execution.";
-    let startupDna = "01 // High-Velocity Product Builder";
+    // 1. Strict Low-Effort / Placeholder Detection
+    const pLow = isLowEffortInput(problemStatement);
+    const bLow = isLowEffortInput(buildIn30Days);
+    const projLow = isLowEffortInput(pastProject);
 
-    // ── Evaluate via Groq API (LLaMA 3.3 70B Versatile) if key is provided ──
-    if (groq) {
-      try {
-        const prompt = `You are the Head of Admissions at an elite Silicon Valley university startup accelerator (The Foundry). Evaluate this candidate's application and provide numerical scores (0-100) and an assessment.
+    let founderScore = 82;
+    let scoreProblemSolving = 80;
+    let scoreLeadership = 78;
+    let scoreExecution = 85;
+    let scoreOverall = 81;
+    let aiAssessmentSummary =
+      "Candidate demonstrates solid founder instincts, viable 30-day scope, and clear bias for rapid prototyping.";
+    let startupDna = "01 // High-Velocity Product Builder";
+    let status = "APPROVED_PENDING_BATCH";
+
+    if (pLow || bLow || projLow) {
+      // Penalize placeholder/spam input heavily
+      founderScore = 18;
+      scoreProblemSolving = 15;
+      scoreLeadership = 12;
+      scoreExecution = 20;
+      scoreOverall = 18;
+      status = "NEEDS_REVISION";
+      startupDna = "00 // Incomplete / Low-Effort Submission";
+      aiAssessmentSummary =
+        "Application contains placeholder or low-effort text ('" + (problemStatement || "").slice(0, 20) + "'). Concrete problem articulation and 30-day prototype scope required for admission.";
+    } else {
+      // 2. Evaluate with Groq AI if key is available
+      if (groq) {
+        try {
+          const prompt = `You are the rigorous Head of Admissions at an elite Silicon Valley venture accelerator (The Foundry at Chandigarh University). Evaluate this candidate's application on a strict scale from 0 to 100.
 
 Applicant Details:
 - Name: ${fullName}
@@ -57,36 +86,66 @@ Applicant Details:
 - Past project built: "${pastProject}"
 - Background & experience: "${experienceSummary}"
 
-Respond strictly with valid JSON conforming to this schema:
+Instructions:
+1. If the candidate answers with gibberish, single words, repetitive characters, or placeholder text, give scores between 10-30 and state that responses lack substance.
+2. If the candidate gives thoughtful, specific, high-velocity answers, score genuinely between 65-95.
+3. Provide an objective, critical 2-sentence assessment.
+
+Respond strictly in valid JSON matching this schema:
 {
-  "problemSolving": <number between 70 and 99>,
-  "leadership": <number between 70 and 99>,
-  "execution": <number between 70 and 99>,
-  "overall": <number between 70 and 99>,
-  "startupDna": "<One of: 'High-Velocity Builder', 'Visionary Architect', 'Growth Hacker', 'System Orchestrator', 'Deep-Tech Pioneer'>",
-  "assessmentSummary": "<2 sentences evaluating their founder potential and bias for shipping>"
+  "problemSolving": <number between 0 and 100>,
+  "leadership": <number between 0 and 100>,
+  "execution": <number between 0 and 100>,
+  "overall": <number between 0 and 100>,
+  "startupDna": "<One of: 'High-Velocity Builder', 'Visionary Architect', 'Growth Hacker', 'System Orchestrator', 'Deep-Tech Pioneer', 'Needs Revision'>",
+  "assessmentSummary": "<2 sentences evaluating their founder potential and prototype feasibility>"
 }`;
 
-        const completion = await groq.chat.completions.create({
-          messages: [{ role: "user", content: prompt }],
-          model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-        });
+          const completion = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            response_format: { type: "json_object" },
+          });
 
-        const resText = completion.choices[0]?.message?.content;
-        if (resText) {
-          const parsed = JSON.parse(resText);
-          scoreProblemSolving = parsed.problemSolving || scoreProblemSolving;
-          scoreLeadership = parsed.leadership || scoreLeadership;
-          scoreExecution = parsed.execution || scoreExecution;
-          scoreOverall = parsed.overall || scoreOverall;
-          founderScore = scoreOverall;
-          startupDna = parsed.startupDna || startupDna;
-          aiAssessmentSummary = parsed.assessmentSummary || aiAssessmentSummary;
+          const resText = completion.choices[0]?.message?.content;
+          if (resText) {
+            const parsed = JSON.parse(resText);
+            scoreProblemSolving = parsed.problemSolving ?? scoreProblemSolving;
+            scoreLeadership = parsed.leadership ?? scoreLeadership;
+            scoreExecution = parsed.execution ?? scoreExecution;
+            scoreOverall = parsed.overall ?? scoreOverall;
+            founderScore = scoreOverall;
+            startupDna = parsed.startupDna || startupDna;
+            aiAssessmentSummary = parsed.assessmentSummary || aiAssessmentSummary;
+            if (founderScore < 40) {
+              status = "NEEDS_REVISION";
+            }
+          }
+        } catch (err) {
+          console.warn("Groq API evaluation error, using dynamic heuristic fallback:", err);
         }
-      } catch (err) {
-        console.warn("Groq API evaluation fallback used:", err);
+      } else {
+        // Dynamic heuristic calculation when Groq is not configured
+        const wordCount = (problemStatement + " " + buildIn30Days + " " + pastProject).split(/\s+/).length;
+        const skillCount = Array.isArray(skills) ? skills.length : 0;
+        
+        let calculated = 60 + Math.min(25, Math.floor(wordCount / 4)) + Math.min(10, skillCount * 2);
+        if (githubUrl && githubUrl.includes("github.com")) calculated += 4;
+        if (linkedinUrl && linkedinUrl.includes("linkedin.com")) calculated += 3;
+
+        founderScore = Math.min(94, Math.max(45, calculated));
+        scoreProblemSolving = Math.min(95, founderScore - 2 + Math.floor(Math.random() * 5));
+        scoreLeadership = Math.min(92, founderScore - 4 + Math.floor(Math.random() * 6));
+        scoreExecution = Math.min(96, founderScore + 3);
+        scoreOverall = founderScore;
+
+        if (trackId === "ai_engineer") startupDna = "01 // Deep-Tech AI Pioneer";
+        else if (trackId === "growth") startupDna = "01 // Growth & Distribution Architect";
+        else if (trackId === "designer") startupDna = "01 // Product & UX Craftsman";
+        else startupDna = "01 // High-Velocity Product Builder";
+
+        aiAssessmentSummary = `Strong application in ${department}. Clear problem framing with high execution velocity in ${trackId.toUpperCase()} specialization.`;
       }
     }
 
@@ -107,7 +166,7 @@ Respond strictly with valid JSON conforming to this schema:
       past_project: pastProject,
       experience_summary: experienceSummary || "",
       skills: skills || [],
-      weekly_hours: Number(weeklyHours) || 15,
+      weekly_hours: typeof weeklyHours === "number" ? weeklyHours : parseInt(weeklyHours) || 15,
       pledge_accepted: Boolean(pledgeAccepted),
       founder_score: founderScore,
       score_problem_solving: scoreProblemSolving,
@@ -116,7 +175,7 @@ Respond strictly with valid JSON conforming to this schema:
       score_overall: scoreOverall,
       ai_assessment_summary: aiAssessmentSummary,
       startup_dna: startupDna,
-      status: "APPROVED_PENDING_BATCH",
+      status: status,
       batch_name: "FOUNDRY BATCH 04",
     };
 
@@ -126,12 +185,9 @@ Respond strictly with valid JSON conforming to this schema:
       if (dbError) {
         console.error("Supabase insert error:", dbError);
       } else {
-        // Increment live community stats
         try {
           await supabase.rpc("increment_founder_count");
-        } catch {
-          // ignore if rpc not present
-        }
+        } catch {}
       }
     }
 

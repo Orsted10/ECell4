@@ -164,3 +164,33 @@ textarea {
   outline: 2px solid var(--color-ember);
   outline-offset: 3px;
 }
+
+/* ── PRINT OPTIMIZATION: ISOLATE FOUNDER PASSPORT ── */
+@media print {
+  @page {
+    margin: 0;
+    size: A4 landscape;
+  }
+  html, body {
+    background: #0a0a0a !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body > * {
+    display: none !important;
+  }
+  #foundry-passport-print-container {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0a0a0a !important;
+    z-index: 999999 !important;
+    padding: 30px !important;
+    page-break-inside: avoid !important;
+  }
+}

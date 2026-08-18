@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { sound } from "@/lib/sound";
@@ -45,6 +45,7 @@ export default function FoundryModal({
 }) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isExportingPng, setIsExportingPng] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -115,8 +116,8 @@ export default function FoundryModal({
         sound.complete();
         try {
           confetti({
-            particleCount: 140,
-            spread: 90,
+            particleCount: 120,
+            spread: 80,
             origin: { y: 0.5 },
             colors: ["#e31e24", "#ffffff", "#3b82f6", "#ffd700", "#10b981"],
           });
@@ -129,40 +130,147 @@ export default function FoundryModal({
     }
   };
 
+  // Instant High-Resolution HTML5 Canvas PNG Exporter (100% Client-Side, 50ms)
+  const exportFounderCardPng = () => {
+    if (!result) return;
+    setIsExportingPng(true);
+    sound.dot();
+
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1200;
+      canvas.height = 675;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // Dark background with carbon border
+      ctx.fillStyle = "#0c0c0e";
+      ctx.fillRect(0, 0, 1200, 675);
+
+      // Gradient accent glow
+      const grad = ctx.createRadialGradient(1000, 100, 50, 1000, 100, 600);
+      grad.addColorStop(0, "rgba(227, 30, 36, 0.2)");
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1200, 675);
+
+      // Card border
+      ctx.strokeStyle = "#e31e24";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(30, 30, 1140, 615);
+
+      // Watermark
+      ctx.font = "bold 140px 'Anton', sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.fillText("E-CELL CU", 450, 480);
+
+      // Header labels
+      ctx.font = "bold 18px 'Space Mono', monospace";
+      ctx.fillStyle = "#e31e24";
+      ctx.fillText("THE FOUNDRY // OFFICIAL FOUNDER PASSPORT", 70, 90);
+
+      ctx.fillStyle = "#8f8f8f";
+      ctx.fillText("COHORT BATCH: " + result.batch_name, 800, 90);
+
+      // Founder ID
+      ctx.font = "bold 44px 'Space Mono', monospace";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(result.founder_id, 70, 155);
+
+      // Divider line
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(70, 185);
+      ctx.lineTo(1130, 185);
+      ctx.stroke();
+
+      // Candidate Metadata Row
+      ctx.font = "14px 'Space Mono', monospace";
+      ctx.fillStyle = "#8f8f8f";
+      ctx.fillText("CANDIDATE", 70, 230);
+      ctx.fillText("TRACK SPECIALIZATION", 400, 230);
+      ctx.fillText("UNIVERSITY ID", 800, 230);
+
+      ctx.font = "bold 26px 'Space Mono', monospace";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(result.full_name, 70, 270);
+      ctx.fillText(result.track_id.toUpperCase(), 400, 270);
+      ctx.fillText(result.university_id, 800, 270);
+
+      // Scores Container Box
+      ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.fillRect(70, 320, 1060, 220);
+      ctx.strokeRect(70, 320, 1060, 220);
+
+      ctx.font = "bold 16px 'Space Mono', monospace";
+      ctx.fillStyle = "#e31e24";
+      ctx.fillText("GROQ AI STARTUP DNA SCORE: " + result.founder_score + "/100", 100, 360);
+
+      ctx.font = "14px 'Space Mono', monospace";
+      ctx.fillStyle = "#8f8f8f";
+      ctx.fillText("PROBLEM SOLVING: " + result.score_problem_solving + "%", 100, 410);
+      ctx.fillText("LEADERSHIP: " + result.score_leadership + "%", 450, 410);
+      ctx.fillText("EXECUTION BIAS: " + result.score_execution + "%", 800, 410);
+
+      // Summary
+      ctx.font = "italic 16px 'Space Mono', monospace";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+      const wrapText = `"${result.ai_assessment_summary}"`;
+      ctx.fillText(wrapText.slice(0, 80), 100, 470);
+      if (wrapText.length > 80) {
+        ctx.fillText(wrapText.slice(80, 160), 100, 500);
+      }
+
+      // Security Footer
+      ctx.font = "13px 'Space Mono', monospace";
+      ctx.fillStyle = "#8f8f8f";
+      ctx.fillText("ISSUED BY E-CELL CHANDIGARH UNIVERSITY · VALIDATED ON SUPABASE", 70, 595);
+      ctx.fillStyle = "#10b981";
+      ctx.fillText("STATUS: " + result.status, 850, 595);
+
+      // Download
+      const link = document.createElement("a");
+      link.download = `Foundry_Passport_${result.founder_id}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsExportingPng(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 md:p-8 bg-void/90 backdrop-blur-3xl overflow-y-auto">
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
       
-      {/* Background Ambient Glow */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[550px] w-[550px] rounded-full bg-ember/15 blur-[160px]" />
-      </div>
-
-      {/* Godly Cybernetic Modal Shell */}
-      <div className="relative w-full max-w-4xl min-h-[620px] rounded-3xl bg-void/95 border-2 border-ember/50 shadow-[0_0_100px_rgba(227,30,36,0.35)] p-6 md:p-10 flex flex-col justify-between overflow-hidden text-paper backdrop-blur-2xl">
+      {/* High-Performance Cybernetic Shell */}
+      <div className="relative w-full max-w-4xl min-h-[580px] my-auto rounded-2xl bg-[#0c0c0e] border border-white/15 shadow-2xl p-6 md:p-8 flex flex-col justify-between text-paper">
         
-        {/* Top Header & Breadcrumb Tracker */}
+        {/* Top Header */}
         <div>
-          <div className="flex items-center justify-between border-b border-paper/15 pb-4 mb-4">
-            <div className="flex items-center gap-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-ember animate-ping" />
-              <span className="font-mono text-xs tracking-[0.35em] uppercase text-ember font-bold">
-                THE FOUNDRY // CRUCIBLE INTAKE ENGINE
+          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="h-2 w-2 rounded-full bg-ember animate-pulse" />
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-ember font-bold">
+                THE FOUNDRY // CRUCIBLE INTAKE
               </span>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="text-paper/60 hover:text-paper text-xs font-mono tracking-widest uppercase transition-colors"
+              className="text-white/60 hover:text-white text-xs font-mono tracking-widest uppercase transition-colors"
             >
               [ CLOSE ✕ ]
             </button>
           </div>
 
-          {/* Stepper Navigation Tracker */}
-          <div className="hidden sm:flex items-center justify-between font-mono text-[10px] tracking-wider text-ash/60 border-b border-paper/10 pb-3 mb-6">
+          {/* Stepper Navigation */}
+          <div className="hidden sm:flex items-center justify-between font-mono text-[10px] tracking-wider text-ash/60 border-b border-white/10 pb-3 mb-5">
             {STEPS_NAV.map((s, idx) => (
               <div
                 key={s}
@@ -170,20 +278,20 @@ export default function FoundryModal({
                   step === idx
                     ? "text-ember font-bold"
                     : step > idx
-                    ? "text-paper font-semibold"
+                    ? "text-white font-semibold"
                     : "text-ash/40"
                 }`}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${step === idx ? "bg-ember animate-pulse" : step > idx ? "bg-paper" : "bg-ash/40"}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${step === idx ? "bg-ember" : step > idx ? "bg-white" : "bg-ash/40"}`} />
                 <span>{s}</span>
-                {idx < STEPS_NAV.length - 1 && <span className="text-ash/20 ml-2">──</span>}
+                {idx < STEPS_NAV.length - 1 && <span className="text-white/15 ml-2">──</span>}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Dynamic Step Content */}
-        <div className="py-4 flex-1 flex flex-col justify-center">
+        {/* Step Body */}
+        <div className="py-2 flex-1 flex flex-col justify-center">
           <AnimatePresence mode="wait">
             
             {/* ════════════════════════════════════════════════════════════════
@@ -192,61 +300,61 @@ export default function FoundryModal({
             {step === 0 && (
               <motion.div
                 key="step-0"
-                initial={{ opacity: 0, scale: 0.96 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-8 text-center max-w-2xl mx-auto"
+                exit={{ opacity: 0, y: -15 }}
+                className="space-y-6 text-center max-w-2xl mx-auto py-2"
               >
                 <div>
-                  <div className="inline-flex items-center gap-2 border border-ember/40 bg-ember/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.3em] text-ember font-bold mb-3">
+                  <div className="inline-flex items-center gap-2 border border-ember/40 bg-ember/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-ember font-bold mb-3 rounded-full">
                     <span className="h-1.5 w-1.5 rounded-full bg-ember animate-ping" />
-                    FOUNDRY INTAKE PROTOCOL // BATCH 04
+                    FOUNDRY BATCH 04 RECRUITMENT
                   </div>
 
-                  <h2 className="hero-display text-4xl md:text-6xl text-paper leading-[0.95] tracking-tight">
+                  <h2 className="font-display text-3xl md:text-5xl text-paper tracking-normal leading-tight">
                     THIS ISN'T A COLLEGE CLUB. <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-ember via-red-500 to-amber-500">
+                    <span className="text-ember">
                       WE FORGE UNICORN FOUNDERS.
                     </span>
                   </h2>
 
-                  <p className="mt-4 text-paper/80 font-mono text-xs md:text-sm leading-relaxed max-w-lg mx-auto">
-                    The Foundry is an elite venture crucible for student builders at Chandigarh University. Non-dilutive capital grants, 1:1 Silicon Valley mentorship, and dedicated compute clusters.
+                  <p className="mt-3 text-paper/75 font-mono text-xs leading-relaxed max-w-lg mx-auto">
+                    The Foundry is an elite venture crucible for student builders at Chandigarh University. Non-dilutive capital grants, 1:1 Silicon Valley mentorship, and dedicated compute credits.
                   </p>
                 </div>
 
-                {/* Glowing Holographic Telemetry Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="rounded-xl border border-paper/15 bg-paper/[0.03] p-4 text-left font-mono backdrop-blur-md">
-                    <span className="text-[10px] text-ash tracking-widest block uppercase">FOUNDERS ADMITTED</span>
-                    <span className="text-2xl text-paper font-bold tracking-tight">{stats.foundersJoined}+</span>
+                {/* Telemetry Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-left font-mono">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3.5">
+                    <span className="text-[9px] text-ash tracking-widest block uppercase">FOUNDERS ADMITTED</span>
+                    <span className="text-xl text-paper font-bold tracking-tight">{stats.foundersJoined}+</span>
                   </div>
-                  <div className="rounded-xl border border-ember/30 bg-ember/[0.06] p-4 text-left font-mono backdrop-blur-md shadow-[0_0_20px_rgba(227,30,36,0.15)]">
-                    <span className="text-[10px] text-ember tracking-widest block uppercase font-bold">IDEAS SHIPPED</span>
-                    <span className="text-2xl text-ember font-bold tracking-tight">{stats.ideasSubmitted}</span>
+                  <div className="rounded-lg border border-ember/30 bg-ember/[0.05] p-3.5">
+                    <span className="text-[9px] text-ember tracking-widest block uppercase font-bold">IDEAS SHIPPED</span>
+                    <span className="text-xl text-ember font-bold tracking-tight">{stats.ideasSubmitted}</span>
                   </div>
-                  <div className="rounded-xl border border-paper/15 bg-paper/[0.03] p-4 text-left font-mono backdrop-blur-md">
-                    <span className="text-[10px] text-ash tracking-widest block uppercase">HACKATHONS</span>
-                    <span className="text-2xl text-paper font-bold tracking-tight">{stats.hackathonsHeld}</span>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3.5">
+                    <span className="text-[9px] text-ash tracking-widest block uppercase">HACKATHONS</span>
+                    <span className="text-xl text-paper font-bold tracking-tight">{stats.hackathonsHeld}</span>
                   </div>
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-left font-mono backdrop-blur-md">
-                    <span className="text-[10px] text-emerald-400 tracking-widest block uppercase font-bold">VENTURES LIVE</span>
-                    <span className="text-2xl text-emerald-400 font-bold tracking-tight">{stats.startupsFormed}</span>
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/20 p-3.5">
+                    <span className="text-[9px] text-emerald-400 tracking-widest block uppercase font-bold">VENTURES LIVE</span>
+                    <span className="text-xl text-emerald-400 font-bold tracking-tight">{stats.startupsFormed}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 flex flex-col items-center gap-3">
+                <div className="pt-2 flex flex-col items-center gap-2.5">
                   <button
                     type="button"
                     onClick={() => {
                       setStep(1);
                       sound.dot();
                     }}
-                    className="border-2 border-ember bg-gradient-to-r from-ember to-ember/90 text-paper px-12 py-4 font-mono text-sm tracking-[0.3em] font-bold shadow-[0_0_40px_rgba(227,30,36,0.5)] hover:shadow-[0_0_60px_rgba(227,30,36,0.8)] hover:scale-105 active:scale-95 transition-all rounded-xl"
+                    className="border border-ember bg-ember text-white px-10 py-3.5 font-mono text-xs tracking-[0.25em] font-bold shadow-[0_0_30px_rgba(227,30,36,0.4)] hover:bg-ember/90 transition-all rounded-lg"
                   >
                     ENTER THE CRUCIBLE →
                   </button>
-                  <span className="font-mono text-[10px] text-ash/60 tracking-widest uppercase">
+                  <span className="font-mono text-[9px] text-ash/60 tracking-widest uppercase">
                     ESTIMATED TIME: 3 MINUTES // POWERED BY GROQ LLaMA 3.3
                   </span>
                 </div>
@@ -259,19 +367,19 @@ export default function FoundryModal({
             {step === 1 && (
               <motion.div
                 key="step-1"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6 max-w-2xl mx-auto w-full"
+                exit={{ opacity: 0, x: -15 }}
+                className="space-y-4 max-w-2xl mx-auto w-full"
               >
                 <div>
                   <span className="font-mono text-xs uppercase tracking-[0.3em] text-ember font-bold">
                     01 // IDENTIFIER & REPUTATION
                   </span>
-                  <h3 className="hero-display text-3xl text-paper mt-1">WHO ARE YOU?</h3>
+                  <h3 className="font-display text-2xl text-paper mt-0.5">WHO ARE YOU?</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
                   <div>
                     <label className="block text-ash mb-1 uppercase tracking-wider font-semibold">Full Name *</label>
                     <input
@@ -280,7 +388,7 @@ export default function FoundryModal({
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                       placeholder="Ankan Roy"
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     />
                   </div>
 
@@ -292,7 +400,7 @@ export default function FoundryModal({
                       value={formData.universityId}
                       onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
                       placeholder="23BCS10842"
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     />
                   </div>
 
@@ -304,7 +412,7 @@ export default function FoundryModal({
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="ankan@cumail.in"
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     />
                   </div>
 
@@ -316,7 +424,7 @@ export default function FoundryModal({
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="+91 98765 43210"
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     />
                   </div>
 
@@ -325,7 +433,7 @@ export default function FoundryModal({
                     <select
                       value={formData.department}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                      className="w-full bg-void border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-[#0c0c0e] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     >
                       <option>Computer Science & Engineering</option>
                       <option>Information Technology</option>
@@ -342,7 +450,7 @@ export default function FoundryModal({
                     <select
                       value={formData.year}
                       onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                      className="w-full bg-void border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-[#0c0c0e] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     >
                       <option>1st Year</option>
                       <option>2nd Year</option>
@@ -359,7 +467,7 @@ export default function FoundryModal({
                       value={formData.githubUrl}
                       onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
                       placeholder="https://github.com/username"
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     />
                   </div>
 
@@ -370,7 +478,7 @@ export default function FoundryModal({
                       value={formData.linkedinUrl}
                       onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
                       placeholder="https://linkedin.com/in/username"
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg px-4 py-3 text-paper focus:border-ember outline-none"
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md px-3.5 py-2.5 text-paper focus:border-ember outline-none"
                     />
                   </div>
                 </div>
@@ -390,7 +498,7 @@ export default function FoundryModal({
                       setStep(2);
                       sound.dot();
                     }}
-                    className="border-2 border-ember bg-ember text-paper px-8 py-3 rounded-lg font-mono text-xs tracking-widest uppercase font-bold disabled:opacity-40 shadow-[0_0_20px_rgba(227,30,36,0.3)] hover:scale-105 transition-all"
+                    className="border border-ember bg-ember text-white px-7 py-2.5 rounded-md font-mono text-xs tracking-widest uppercase font-bold disabled:opacity-40"
                   >
                     NEXT: SELECT TRACK →
                   </button>
@@ -399,27 +507,28 @@ export default function FoundryModal({
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                STEP 2: CHOOSE YOUR FOUNDRY TRACK
+                STEP 2: CHOOSE YOUR FOUNDRY TRACK (FULLY SCROLLABLE & RESPONSIVE)
                ════════════════════════════════════════════════════════════════ */}
             {step === 2 && (
               <motion.div
                 key="step-2"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-5 max-w-3xl mx-auto w-full"
+                exit={{ opacity: 0, x: -15 }}
+                className="space-y-4 max-w-3xl mx-auto w-full"
               >
                 <div>
                   <span className="font-mono text-xs uppercase tracking-[0.3em] text-ember font-bold">
                     02 // TRACK SPECIALIZATION
                   </span>
-                  <h3 className="hero-display text-3xl text-paper mt-1">WHERE DO YOU CREATE LEVERAGE?</h3>
-                  <p className="text-xs font-mono text-ash mt-0.5">
-                    Select your primary capability in high-velocity venture squads.
+                  <h3 className="font-display text-2xl text-paper mt-0.5">WHERE DO YOU CREATE LEVERAGE?</h3>
+                  <p className="text-xs font-mono text-ash">
+                    Select your primary capability in high-velocity venture squads (scroll to see all 8 tracks).
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-2">
+                {/* Fully Scrollable Grid Container with Smooth Height */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[46vh] overflow-y-auto pr-1">
                   {FOUNDRY_TRACKS.map((t) => {
                     const isSelected = formData.trackId === t.id;
                     return (
@@ -430,20 +539,20 @@ export default function FoundryModal({
                           setFormData({ ...formData, trackId: t.id });
                           sound.dot();
                         }}
-                        className={`p-4 text-left border rounded-xl transition-all ${
+                        className={`p-3.5 text-left border rounded-lg transition-all ${
                           isSelected
-                            ? "border-ember bg-ember/15 shadow-[0_0_25px_rgba(227,30,36,0.25)]"
-                            : "border-paper/10 bg-paper/[0.02] hover:border-paper/30"
+                            ? "border-ember bg-ember/20 shadow-[0_0_15px_rgba(227,30,36,0.3)]"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/25"
                         }`}
                       >
                         <div className="flex items-center justify-between font-mono text-xs mb-1">
-                          <span className="text-xl">{t.icon}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${isSelected ? "bg-ember text-white" : "bg-paper/10 text-ash"}`}>
+                          <span className="text-lg">{t.icon}</span>
+                          <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${isSelected ? "bg-ember text-white" : "bg-white/10 text-ash"}`}>
                             {t.superpower}
                           </span>
                         </div>
-                        <h4 className="font-display text-lg text-paper tracking-wide">{t.name}</h4>
-                        <p className="text-xs text-ash leading-relaxed mt-1">{t.desc}</p>
+                        <h4 className="font-display text-base text-paper tracking-wide">{t.name}</h4>
+                        <p className="text-[11px] text-ash leading-relaxed mt-0.5">{t.desc}</p>
                       </button>
                     );
                   })}
@@ -463,7 +572,7 @@ export default function FoundryModal({
                       setStep(3);
                       sound.dot();
                     }}
-                    className="border-2 border-ember bg-ember text-paper px-8 py-3 rounded-lg font-mono text-xs tracking-widest uppercase font-bold shadow-[0_0_20px_rgba(227,30,36,0.3)] hover:scale-105 transition-all"
+                    className="border border-ember bg-ember text-white px-7 py-2.5 rounded-md font-mono text-xs tracking-widest uppercase font-bold"
                   >
                     NEXT: STARTUP MINDSET →
                   </button>
@@ -477,47 +586,47 @@ export default function FoundryModal({
             {step === 3 && (
               <motion.div
                 key="step-3"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-4 max-w-2xl mx-auto w-full"
+                exit={{ opacity: 0, x: -15 }}
+                className="space-y-3.5 max-w-2xl mx-auto w-full"
               >
                 <div>
                   <span className="font-mono text-xs uppercase tracking-[0.3em] text-ember font-bold">
                     03 // CONVICTION & EXECUTION BIAS
                   </span>
-                  <h3 className="hero-display text-3xl text-paper mt-1">THE FOUNDER MINDSET</h3>
-                  <p className="text-xs font-mono text-ash mt-0.5">
-                    Evaluated by Groq AI for bias toward shipping and clarity of thought.
+                  <h3 className="font-display text-2xl text-paper mt-0.5">THE FOUNDER MINDSET</h3>
+                  <p className="text-xs font-mono text-ash">
+                    Evaluated by Groq AI. Please provide concrete, thoughtful details.
                   </p>
                 </div>
 
-                <div className="space-y-3.5 font-mono text-xs">
+                <div className="space-y-3 font-mono text-xs">
                   <div>
                     <label className="block text-paper/90 mb-1 font-bold">
-                      1. What is one problem you notice every day that nobody is solving? *
+                      1. What problem do you notice every day that nobody is solving? *
                     </label>
                     <textarea
                       rows={2}
                       required
                       value={formData.problemStatement}
                       onChange={(e) => setFormData({ ...formData, problemStatement: e.target.value })}
-                      placeholder="e.g. Student project teams fall apart because there's no automated escrow or milestone tracker..."
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg p-3 text-paper focus:border-ember outline-none leading-relaxed"
+                      placeholder="e.g. Campus teams fall apart due to lack of milestone escrow tracking..."
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md p-2.5 text-paper focus:border-ember outline-none leading-relaxed"
                     />
                   </div>
 
                   <div>
                     <label className="block text-paper/90 mb-1 font-bold">
-                      2. If we gave you ₹10,000 / $150 today, what would you build in 30 days? *
+                      2. If we gave you ₹10,000 today, what would you build in 30 days? *
                     </label>
                     <textarea
                       rows={2}
                       required
                       value={formData.buildIn30Days}
                       onChange={(e) => setFormData({ ...formData, buildIn30Days: e.target.value })}
-                      placeholder="e.g. I would spin up an API wrapper, deploy a Next.js landing page, run targeted ads, and onboard 10 beta users."
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg p-3 text-paper focus:border-ember outline-none leading-relaxed"
+                      placeholder="e.g. Build an API wrapper on Next.js, launch a beta page, and sign up 10 paid users."
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md p-2.5 text-paper focus:border-ember outline-none leading-relaxed"
                     />
                   </div>
 
@@ -530,8 +639,8 @@ export default function FoundryModal({
                       required
                       value={formData.pastProject}
                       onChange={(e) => setFormData({ ...formData, pastProject: e.target.value })}
-                      placeholder="Describe anything from a small Python bot to a 500-member community or freelancing client project."
-                      className="w-full bg-paper/[0.04] border border-paper/20 rounded-lg p-3 text-paper focus:border-ember outline-none leading-relaxed"
+                      placeholder="Describe anything from a small Python script to a 500-member community project."
+                      className="w-full bg-white/[0.04] border border-white/20 rounded-md p-2.5 text-paper focus:border-ember outline-none leading-relaxed"
                     />
                   </div>
                 </div>
@@ -551,7 +660,7 @@ export default function FoundryModal({
                       setStep(4);
                       sound.dot();
                     }}
-                    className="border-2 border-ember bg-ember text-paper px-8 py-3 rounded-lg font-mono text-xs tracking-widest uppercase font-bold disabled:opacity-40 shadow-[0_0_20px_rgba(227,30,36,0.3)] hover:scale-105 transition-all"
+                    className="border border-ember bg-ember text-white px-7 py-2.5 rounded-md font-mono text-xs tracking-widest uppercase font-bold disabled:opacity-40"
                   >
                     NEXT: ARMORY & PLEDGE →
                   </button>
@@ -560,28 +669,28 @@ export default function FoundryModal({
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                STEP 4: SKILLS, WEEKLY COMMITMENT & FINAL SUBMIT
+                STEP 4: SKILLS & SUBMIT
                ════════════════════════════════════════════════════════════════ */}
             {step === 4 && (
               <motion.div
                 key="step-4"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-5 max-w-2xl mx-auto w-full"
+                exit={{ opacity: 0, x: -15 }}
+                className="space-y-4 max-w-2xl mx-auto w-full"
               >
                 <div>
                   <span className="font-mono text-xs uppercase tracking-[0.3em] text-ember font-bold">
                     04 // ARMORY & COMMITMENT
                   </span>
-                  <h3 className="hero-display text-3xl text-paper mt-1">YOUR TOOLKIT & PLEDGE</h3>
+                  <h3 className="font-display text-2xl text-paper mt-0.5">YOUR TOOLKIT & PLEDGE</h3>
                 </div>
 
                 <div>
                   <label className="block text-xs font-mono text-ash mb-2 uppercase tracking-wider">
-                    Select Your Core Skills (Multi-select)
+                    Select Your Core Skills
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {SKILLS_LIST.map((skill) => {
                       const isSel = formData.skills.includes(skill);
                       return (
@@ -589,10 +698,10 @@ export default function FoundryModal({
                           key={skill}
                           type="button"
                           onClick={() => toggleSkill(skill)}
-                          className={`font-mono text-xs px-3 py-1.5 rounded-md border transition-all ${
+                          className={`font-mono text-xs px-2.5 py-1 rounded border transition-all ${
                             isSel
-                              ? "border-ember bg-ember text-paper font-bold shadow-[0_0_12px_rgba(227,30,36,0.4)]"
-                              : "border-paper/15 text-paper/70 hover:border-paper/40"
+                              ? "border-ember bg-ember text-white font-bold"
+                              : "border-white/15 text-paper/70 hover:border-white/30"
                           }`}
                         >
                           {skill} {isSel ? "✓" : "+"}
@@ -603,17 +712,17 @@ export default function FoundryModal({
                 </div>
 
                 <div className="font-mono text-xs">
-                  <label className="block text-ash mb-2 uppercase tracking-wider">
+                  <label className="block text-ash mb-1.5 uppercase tracking-wider">
                     Weekly Hours Dedicated to The Foundry *
                   </label>
-                  <div className="flex gap-3">
-                    {["10-15 hrs", "15-25 hrs", "25+ hrs (Full Immersion)"].map((hrs) => (
+                  <div className="flex gap-2.5">
+                    {["10-15 hrs", "15-25 hrs", "25+ hrs"].map((hrs) => (
                       <label
                         key={hrs}
-                        className={`flex-1 border rounded-lg p-3 cursor-pointer text-center transition-all ${
+                        className={`flex-1 border rounded-md p-2.5 cursor-pointer text-center transition-all ${
                           formData.weeklyHours === hrs
-                            ? "border-ember bg-ember/20 text-paper font-bold shadow-[0_0_15px_rgba(227,30,36,0.2)]"
-                            : "border-paper/15 text-paper/70"
+                            ? "border-ember bg-ember/20 text-white font-bold"
+                            : "border-white/15 text-paper/70"
                         }`}
                       >
                         <input
@@ -630,7 +739,7 @@ export default function FoundryModal({
                   </div>
                 </div>
 
-                <div className="p-4 border-2 border-ember/40 bg-ember/10 rounded-xl flex items-start gap-3">
+                <div className="p-3.5 border border-ember/40 bg-ember/10 rounded-lg flex items-start gap-2.5">
                   <input
                     type="checkbox"
                     id="pledge"
@@ -656,11 +765,11 @@ export default function FoundryModal({
                     type="button"
                     disabled={loading || !formData.pledgeAccepted}
                     onClick={handleSubmit}
-                    className="border-2 border-ember bg-gradient-to-r from-ember to-ember/90 text-paper px-10 py-4 rounded-xl font-mono text-sm tracking-[0.25em] uppercase font-bold hover:scale-105 disabled:opacity-40 transition-all shadow-[0_0_35px_rgba(227,30,36,0.5)] flex items-center gap-3"
+                    className="border border-ember bg-ember text-white px-8 py-3 rounded-md font-mono text-xs tracking-widest uppercase font-bold disabled:opacity-40 flex items-center gap-2"
                   >
                     {loading ? (
                       <>
-                        <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
                         GROQ AI EVALUATING...
                       </>
                     ) : (
@@ -672,114 +781,114 @@ export default function FoundryModal({
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                STEP 5: DIGITAL HOLOGRAPHIC FOUNDER PASSPORT
+                STEP 5: DIGITAL FOUNDER PASSPORT & 1-CLICK EXPORTS
                ════════════════════════════════════════════════════════════════ */}
             {step === 5 && result && (
               <motion.div
                 key="step-5"
-                initial={{ opacity: 0, scale: 0.94 }}
+                initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="space-y-6 max-w-3xl mx-auto w-full text-center"
+                className="space-y-4 max-w-2xl mx-auto w-full text-center"
               >
                 <div>
-                  <span className="font-mono text-xs uppercase tracking-[0.4em] text-emerald-400 font-bold">
-                    PASSPORT GENERATED // STATUS: ADMITTED TO EVALUATION
+                  <span className={`font-mono text-xs uppercase tracking-[0.3em] font-bold ${result.status === "NEEDS_REVISION" ? "text-amber-400" : "text-emerald-400"}`}>
+                    STATUS: {result.status}
                   </span>
-                  <h3 className="hero-display text-4xl text-paper mt-1">
-                    WELCOME TO THE FOUNDRY, {result.full_name.split(" ")[0].toUpperCase()}.
+                  <h3 className="font-display text-3xl text-paper mt-0.5">
+                    {result.status === "NEEDS_REVISION" ? "SUBMISSION RECORDED" : `WELCOME TO THE FOUNDRY, ${result.full_name.split(" ")[0].toUpperCase()}.`}
                   </h3>
-                  <p className="text-xs font-mono text-ash mt-0.5">
-                    Builders aren't selected. They prove themselves.
-                  </p>
                 </div>
 
-                {/* Digital Holographic Founder Passport Card */}
-                <div className="relative rounded-2xl border-2 border-ember bg-gradient-to-br from-void via-zinc-950 to-neutral-900 p-8 text-left shadow-[0_0_80px_rgba(227,30,36,0.35)] font-mono space-y-6 overflow-hidden">
+                {/* Print & View Passport Container */}
+                <div id="foundry-passport-print-container" className="rounded-xl border border-ember bg-zinc-950 p-6 text-left font-mono space-y-4 shadow-xl">
                   
-                  {/* Holographic Sheen Overlay */}
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(227,30,36,0.15),transparent_70%)] pointer-events-none" />
-
-                  {/* Watermark */}
-                  <div className="absolute right-4 bottom-2 text-paper/[0.03] text-8xl hero-display pointer-events-none select-none">
-                    E-CELL
-                  </div>
-
-                  {/* Header Row */}
-                  <div className="relative flex justify-between items-start border-b border-paper/15 pb-4">
+                  {/* Header */}
+                  <div className="flex justify-between items-start border-b border-white/10 pb-3">
                     <div>
-                      <span className="text-[10px] text-ash tracking-widest block uppercase">FOUNDER PASSPORT ID</span>
-                      <span className="text-2xl font-bold text-ember tracking-wider">{result.founder_id}</span>
+                      <span className="text-[9px] text-ash tracking-widest block uppercase">FOUNDER PASSPORT ID</span>
+                      <span className="text-xl font-bold text-ember tracking-wider">{result.founder_id}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-ash tracking-widest block uppercase">COHORT BATCH</span>
-                      <span className="text-sm font-bold text-paper">{result.batch_name}</span>
+                      <span className="text-[9px] text-ash tracking-widest block uppercase">COHORT BATCH</span>
+                      <span className="text-xs font-bold text-white">{result.batch_name}</span>
                     </div>
                   </div>
 
-                  {/* Founder Profile Details */}
-                  <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                  {/* Metadata Row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div>
-                      <span className="text-ash block uppercase text-[10px]">CANDIDATE</span>
-                      <span className="text-paper font-bold text-sm">{result.full_name}</span>
+                      <span className="text-ash block uppercase text-[9px]">CANDIDATE</span>
+                      <span className="text-white font-bold">{result.full_name}</span>
                     </div>
                     <div>
-                      <span className="text-ash block uppercase text-[10px]">TRACK</span>
-                      <span className="text-paper font-bold text-sm uppercase">{result.track_id}</span>
+                      <span className="text-ash block uppercase text-[9px]">TRACK</span>
+                      <span className="text-white font-bold uppercase">{result.track_id}</span>
                     </div>
                     <div>
-                      <span className="text-ash block uppercase text-[10px]">DEPARTMENT</span>
-                      <span className="text-paper">{result.department}</span>
+                      <span className="text-ash block uppercase text-[9px]">DEPARTMENT</span>
+                      <span className="text-white text-[11px] truncate block">{result.department}</span>
                     </div>
                     <div>
-                      <span className="text-ash block uppercase text-[10px]">UNIVERSITY ID</span>
-                      <span className="text-paper font-bold">{result.university_id}</span>
+                      <span className="text-ash block uppercase text-[9px]">UNIVERSITY ID</span>
+                      <span className="text-white font-bold">{result.university_id}</span>
                     </div>
                   </div>
 
-                  {/* Groq AI Assessment Scores */}
-                  <div className="relative rounded-xl border border-paper/15 bg-paper/[0.03] p-5 space-y-3 backdrop-blur-md">
+                  {/* AI Scores Box */}
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-[11px] text-ember font-bold tracking-widest uppercase">
-                        GROQ AI FOUNDER DNA SCORE
+                      <span className="text-[10px] text-ember font-bold tracking-widest uppercase">
+                        GROQ AI FOUNDER SCORE
                       </span>
-                      <span className="text-xl font-bold text-paper">{result.founder_score} / 100</span>
+                      <span className="text-lg font-bold text-white">{result.founder_score} / 100</span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 text-center border-t border-paper/10 pt-3 text-[11px]">
-                      <div className="p-2 rounded bg-paper/[0.02]">
-                        <span className="text-ash block text-[10px]">PROBLEM SOLVING</span>
-                        <span className="font-bold text-paper text-sm">{result.score_problem_solving}%</span>
+                    <div className="grid grid-cols-3 gap-2 text-center border-t border-white/10 pt-2 text-[10px]">
+                      <div>
+                        <span className="text-ash block text-[9px]">PROBLEM SOLVING</span>
+                        <span className="font-bold text-white">{result.score_problem_solving}%</span>
                       </div>
-                      <div className="p-2 rounded bg-paper/[0.02]">
-                        <span className="text-ash block text-[10px]">LEADERSHIP</span>
-                        <span className="font-bold text-paper text-sm">{result.score_leadership}%</span>
+                      <div>
+                        <span className="text-ash block text-[9px]">LEADERSHIP</span>
+                        <span className="font-bold text-white">{result.score_leadership}%</span>
                       </div>
-                      <div className="p-2 rounded bg-paper/[0.02]">
-                        <span className="text-ash block text-[10px]">EXECUTION BIAS</span>
-                        <span className="font-bold text-emerald-400 text-sm">{result.score_execution}%</span>
+                      <div>
+                        <span className="text-ash block text-[9px]">EXECUTION BIAS</span>
+                        <span className="font-bold text-emerald-400">{result.score_execution}%</span>
                       </div>
                     </div>
 
-                    <div className="border-t border-paper/10 pt-2 text-xs text-paper/85 leading-relaxed italic">
+                    <div className="border-t border-white/10 pt-2 text-xs text-white/80 italic leading-relaxed">
                       "{result.ai_assessment_summary}"
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
+                {/* 1-Click Action Buttons */}
+                <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={exportFounderCardPng}
+                    disabled={isExportingPng}
+                    className="border border-white/20 bg-white/[0.04] rounded-md px-5 py-2.5 font-mono text-xs text-white hover:border-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>📷 DOWNLOAD CARD (PNG)</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="border border-paper/30 rounded-xl px-6 py-3 font-mono text-xs text-paper hover:border-paper transition-colors"
+                    className="border border-white/20 bg-white/[0.04] rounded-md px-5 py-2.5 font-mono text-xs text-white hover:border-white transition-all flex items-center justify-center gap-2"
                   >
-                    PRINT / SAVE PASSPORT 🖨️
+                    <span>🖨️ PRINT 1-PAGE PDF</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={onClose}
-                    className="border-2 border-ember bg-ember rounded-xl px-8 py-3 font-mono text-xs text-paper font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(227,30,36,0.4)]"
+                    className="border border-ember bg-ember rounded-md px-7 py-2.5 font-mono text-xs text-white font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(227,30,36,0.4)]"
                   >
-                    ENTER FOUNDRY PORTAL →
+                    DONE ↵
                   </button>
                 </div>
               </motion.div>
