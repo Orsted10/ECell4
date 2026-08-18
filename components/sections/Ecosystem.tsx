@@ -2,27 +2,32 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { NETWORK_ROLES, PEOPLE, type Person } from "@/data/content";
-import { MaskText, Reveal } from "@/components/core/Motion";
+import { NETWORK_ROLES, PEOPLE, type NetworkRole, type Person } from "@/data/content";
+import { sound } from "@/lib/sound";
+import { Magnetic, MaskText, Reveal } from "@/components/core/Motion";
+import { scrollToId } from "@/lib/scroll";
 
-const VB_W = 1000;
-const VB_H = 700;
+const VB_W = 1100;
+const VB_H = 750;
 
-/* fixed-precision helper: guarantees identical attribute strings
-   between server and client render (floats serialize differently) */
-const r3 = (v: number) => Math.round(v * 1000) / 1000;
-const t3 = (v: number) => Math.round(v * 1000) / 1000;
-
-const ROLE_LAYOUT: Record<string, { x: number; y: number; spread: number }> = {
-  STUDENTS: { x: 500, y: 400, spread: 170 },
-  FOUNDERS: { x: 760, y: 240, spread: 120 },
-  MENTORS: { x: 300, y: 150, spread: 115 },
-  ALUMNI: { x: 190, y: 470, spread: 110 },
-  FACULTY: { x: 430, y: 620, spread: 100 },
-  PARTNERS: { x: 820, y: 540, spread: 90 },
+const ROLE_COLORS: Record<NetworkRole, { stroke: string; bg: string; text: string; glow: string }> = {
+  FOUNDERS: { stroke: "#e31e24", bg: "#e31e24", text: "#ffffff", glow: "rgba(227,30,36,0.6)" },
+  STUDENTS: { stroke: "#111111", bg: "#1f1f1f", text: "#ffffff", glow: "rgba(0,0,0,0.3)" },
+  MENTORS: { stroke: "#059669", bg: "#10b981", text: "#ffffff", glow: "rgba(16,185,129,0.5)" },
+  ALUMNI: { stroke: "#4f46e5", bg: "#6366f1", text: "#ffffff", glow: "rgba(99,102,241,0.5)" },
+  FACULTY: { stroke: "#d97706", bg: "#f59e0b", text: "#ffffff", glow: "rgba(245,158,11,0.5)" },
+  PARTNERS: { stroke: "#0891b2", bg: "#06b6d4", text: "#ffffff", glow: "rgba(6,182,212,0.5)" },
 };
 
-/* deterministic pseudo-random so the layout is stable */
+const ROLE_LAYOUT: Record<NetworkRole, { x: number; y: number; spread: number; label: string }> = {
+  FOUNDERS: { x: 780, y: 230, spread: 130, label: "01 // FOUNDERS" },
+  STUDENTS: { x: 550, y: 410, spread: 180, label: "02 // BUILDERS" },
+  MENTORS: { x: 300, y: 160, spread: 120, label: "03 // MENTORS" },
+  ALUMNI: { x: 190, y: 490, spread: 110, label: "04 // ALUMNI" },
+  FACULTY: { x: 440, y: 640, spread: 100, label: "05 // FACULTY" },
+  PARTNERS: { x: 860, y: 550, spread: 95, label: "06 // PARTNERS" },
+};
+
 function mulberry32(a: number) {
   return () => {
     a |= 0;
@@ -42,31 +47,21 @@ interface Node {
   neighbors: string[];
   drift: number;
   seed: number;
-  touchR: number;
-}
-
-function useSmallScreen() {
-  const [small, setSmall] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
-    setSmall(mq.matches);
-    const on = (e: MediaQueryListEvent) => setSmall(e.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return small;
 }
 
 export default function Ecosystem() {
   const reduced = useReducedMotion();
-  const small = useSmallScreen();
+  const [activeRole, setActiveRole] = useState<NetworkRole | "ALL">("ALL");
+  const [viewMode, setViewMode] = useState<"graph" | "grid">("graph");
   const [focus, setFocus] = useState<string | null>(null);
   const [selected, setSelected] = useState<Person | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
+  // Compute fixed deterministic node locations
   const { nodes, hubs, edges } = useMemo(() => {
-    const rnd = mulberry32(20260813);
-    const byRole = new Map<string, Person[]>();
+    const rnd = mulberry32(20260818);
+    const byRole = new Map<NetworkRole, Person[]>();
     for (const p of PEOPLE) {
       byRole.set(p.role, [...(byRole.get(p.role) ?? []), p]);
     }
@@ -82,11 +77,9 @@ export default function Ecosystem() {
         nodes.push({
           id: person.id,
           person,
-          x: layout.x + Math.cos(angle) * rad,
-          y: layout.y + Math.sin(angle) * rad * 0.82,
-          r: 5.5 + rnd() * 3.5 + (person.featured ? 3 : 0),
-          // smaller viewport → bigger touch targets (viewBox units)
-          touchR: small ? 2.6 : 1,
+          x: Math.max(60, Math.min(VB_W - 60, layout.x + Math.cos(angle) * rad)),
+          y: Math.max(60, Math.min(VB_H - 60, layout.y + Math.sin(angle) * rad * 0.84)),
+          r: 7 + rnd() * 4 + (person.featured ? 4 : 0),
           neighbors: [],
           drift: 2 + rnd() * 4,
           seed: rnd() * Math.PI * 2,
@@ -98,251 +91,675 @@ export default function Ecosystem() {
       role,
       x: ROLE_LAYOUT[role].x,
       y: ROLE_LAYOUT[role].y,
+      label: ROLE_LAYOUT[role].label,
     }));
 
-    // edges: node → its role hub, plus close-neighbor links
-    const edges: { a: string; b: string }[] = [];
-    const hubMap = new Map<string, string>();
-    for (const n of nodes) {
-      const hub = hubs.find((h) => h.role === n.person.role)!;
-      const hubId = `hub-${hub.role}`;
-      hubMap.set(n.id, hubId);
-    }
+    // Generate cluster edges + cross-role bridges
+    const edges: { a: string; b: string; cross?: boolean }[] = [];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
         const d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (d < 110) {
-          edges.push({ a: a.id, b: b.id });
+        const sameRole = a.person.role === b.person.role;
+        const threshold = sameRole ? 130 : 95;
+
+        if (d < threshold) {
+          edges.push({ a: a.id, b: b.id, cross: !sameRole });
           a.neighbors.push(b.id);
           b.neighbors.push(a.id);
         }
       }
     }
 
-    return { nodes, hubs, edges, hubMap };
-  }, [small]);
+    return { nodes, hubs, edges };
+  }, []);
 
-  const isConnected = (id: string) => {
+  const isHighlighted = (person: Person) => {
+    if (activeRole === "ALL") return true;
+    return person.role === activeRole;
+  };
+
+  const isConnectedToFocus = (id: string) => {
     if (!focus) return true;
     if (id === focus) return true;
     const n = nodes.find((x) => x.id === focus);
     return n?.neighbors.includes(id) ?? false;
   };
 
-  const showDetail = (person: Person) => {
-    setSelected(person);
+  const handlePointerEnter = (id: string) => {
+    setFocus(id);
+    sound.dot();
   };
+
+  const handleNodeClick = (person: Person) => {
+    setSelected(person);
+    sound.enter();
+  };
+
+  const focusedNode = useMemo(() => {
+    if (!focus) return null;
+    return nodes.find((n) => n.id === focus) ?? null;
+  }, [focus, nodes]);
+
+  const filteredPeople = useMemo(() => {
+    if (activeRole === "ALL") return PEOPLE;
+    return PEOPLE.filter((p) => p.role === activeRole);
+  }, [activeRole]);
 
   return (
     <section
       id="ecosystem"
-      className="relative bg-paper px-6 py-28 text-ink md:px-[8vw] md:py-36"
+      className="relative bg-paper px-6 py-28 text-ink md:px-[8vw] md:py-36 overflow-hidden select-none"
       aria-label="The ecosystem"
     >
-      <div className="mb-14 flex flex-col justify-between gap-8 md:mb-20 md:flex-row md:items-end">
+      {/* Background Architectural Radar Grid */}
+      <div className="pointer-events-none absolute inset-0 opacity-40">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(23,23,23,0.04)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      </div>
+
+      {/* Section Header */}
+      <div className="relative mb-12 flex flex-col justify-between gap-8 md:mb-16 md:flex-row md:items-end">
         <div>
-          <p className="label-ink mb-5 text-ember">04 — THE PEOPLE</p>
-          <h2 className="font-display text-[clamp(40px,7vw,110px)] leading-[0.9]">
+          <div className="mb-4 inline-flex items-center gap-3 border border-ember/40 bg-ember/10 px-3.5 py-1">
+            <span className="h-2 w-2 rounded-full bg-ember animate-ping" />
+            <span className="font-mono text-xs tracking-[0.3em] uppercase text-ember font-bold">
+              04 // LIVING SYNAPSE NETWORK
+            </span>
+          </div>
+          <h2 className="hero-display text-[clamp(44px,7.5vw,110px)] leading-[0.9] text-ink">
             THE <span className="text-stroke-ink">ECOSYSTEM.</span>
           </h2>
         </div>
-        <Reveal className="max-w-sm">
-          <p className="text-[15px] leading-relaxed text-ink/65">
-            A living network of students, founders, mentors, alumni, faculty and
-            partners. Hover to see the connections. Click a node to meet someone.
+
+        <Reveal className="max-w-md">
+          <p className="font-mono text-xs md:text-sm leading-relaxed text-ink/75 uppercase tracking-wide">
+            A high-density network of student builders, funded founders, venture mentors, and alumni leaders. Hover to illuminate synapses. Click any node to open their founder dossier.
           </p>
         </Reveal>
       </div>
 
-      <div ref={wrapRef} className="relative mx-auto aspect-[10/7] w-full max-w-5xl">
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          className="h-full w-full"
-          role="img"
-          aria-label="Interactive network of people in the E-Cell ecosystem"
-        >
-          {/* hub rings */}
-          {hubs.map((h) => (
-            <g key={h.role}>
-              <circle
-                cx={t3(h.x)}
-                cy={t3(h.y)}
-                r={44}
-                fill="none"
-                stroke="rgba(23,23,23,0.12)"
-                strokeWidth="1"
-                strokeDasharray="3 6"
-              />
-              <circle cx={t3(h.x)} cy={t3(h.y)} r={3} fill="#e31e24" />
-            </g>
-          ))}
+      {/* ════════════════════════════════════════════════════════════════════
+          LIVE ECOSYSTEM TELEMETRY STATS BAR
+         ════════════════════════════════════════════════════════════════════ */}
+      <div className="relative mb-10 grid grid-cols-2 md:grid-cols-4 gap-3 border border-ink/10 bg-white/70 backdrop-blur-md p-5 shadow-sm font-mono">
+        <div>
+          <span className="text-[10px] text-ink/50 tracking-widest block uppercase">ACTIVE VENTURE COHORT</span>
+          <span className="text-2xl font-bold text-ink">340+ FOUNDERS</span>
+        </div>
+        <div>
+          <span className="text-[10px] text-ink/50 tracking-widest block uppercase">SEED CAPITAL RAISED</span>
+          <span className="text-2xl font-bold text-ember">₹4.2 CR+</span>
+        </div>
+        <div>
+          <span className="text-[10px] text-ink/50 tracking-widest block uppercase">CAMPUS VENTURES SHIPPED</span>
+          <span className="text-2xl font-bold text-ink">48 COMPANIES</span>
+        </div>
+        <div>
+          <span className="text-[10px] text-ink/50 tracking-widest block uppercase">1:1 MENTOR ACCELERATION</span>
+          <span className="text-2xl font-bold text-emerald-600">120+ HRS / MO</span>
+        </div>
+      </div>
 
-          {/* edges */}
-          {edges.map((e) => {
-            const a = nodes.find((n) => n.id === e.a)!;
-            const b = nodes.find((n) => n.id === e.b)!;
-            const active = focus !== null && (e.a === focus || e.b === focus);
-            return (
-              <line
-                key={`${e.a}-${e.b}`}
-                x1={t3(a.x)}
-                y1={t3(a.y)}
-                x2={t3(b.x)}
-                y2={t3(b.y)}
-                stroke={active ? "#e31e24" : "rgba(23,23,23,0.16)"}
-                strokeWidth={active ? 1.6 : 0.8}
-                opacity={active ? 1 : focus ? 0.08 : 0.5}
-              />
-            );
-          })}
+      {/* ════════════════════════════════════════════════════════════════════
+          TRACK FILTER TABS & VIEW TOGGLE
+         ════════════════════════════════════════════════════════════════════ */}
+      <div className="relative mb-8 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-ink/10 pb-6">
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveRole("ALL");
+              sound.dot();
+            }}
+            className={`font-mono text-xs uppercase px-4 py-2 border transition-all ${
+              activeRole === "ALL"
+                ? "border-ember bg-ember text-white font-bold shadow-[0_0_15px_rgba(227,30,36,0.3)]"
+                : "border-ink/15 bg-white/50 text-ink/70 hover:border-ink/40"
+            }`}
+          >
+            ALL CLUSTERS ({PEOPLE.length})
+          </button>
 
-          {/* nodes */}
-          {nodes.map((n) => {
-            const active = focus === n.id;
-            const dimmed = focus !== null && !isConnected(n.id);
+          {NETWORK_ROLES.map((role) => {
+            const isSel = activeRole === role;
+            const count = PEOPLE.filter((p) => p.role === role).length;
+            const color = ROLE_COLORS[role].bg;
             return (
-              <g
-                key={n.id}
-                transform={`translate(${t3(n.x)} ${t3(n.y)})`}
-                opacity={dimmed ? 0.2 : 1}
+              <button
+                key={role}
+                type="button"
+                onClick={() => {
+                  setActiveRole(role);
+                  sound.dot();
+                }}
+                className={`font-mono text-xs uppercase px-3.5 py-2 border flex items-center gap-2 transition-all ${
+                  isSel
+                    ? "border-ink bg-ink text-white font-bold shadow-md"
+                    : "border-ink/15 bg-white/50 text-ink/70 hover:border-ink/40"
+                }`}
               >
-                {active && (
-                  <circle r={t3(n.r + 10)} fill="none" stroke="#e31e24" strokeWidth="1" opacity="0.5" />
-                )}
-                <motion.g
-                  animate={reduced ? undefined : { y: [0, n.drift, 0] }}
-                  transition={{
-                    duration: n.drift * 1.6,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: n.seed,
-                  }}
-                >
-                  <circle
-                    cx={0}
-                    cy={0}
-                    r={t3(n.r * n.touchR)}
-                    fill={
-                      active
-                        ? "#e31e24"
-                        : n.person.role === "STUDENTS"
-                          ? "#1b1b1b"
-                          : "#8a8a8a"
-                    }
-                    className="cursor-pointer"
-                    onPointerEnter={() => setFocus(n.id)}
-                    onPointerLeave={() => setFocus(null)}
-                    onClick={() => showDetail(n.person)}
-                  />
-                </motion.g>
-              </g>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                {role} ({count})
+              </button>
             );
           })}
-        </svg>
+        </div>
 
-        {/* floating label of the focused node */}
-        <AnimatePresence>
-          {focus && (
-            <motion.div
-              key={focus}
-              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
-              style={{
-                left: `${(() => {
-                  const n = nodes.find((x) => x.id === focus)!;
-                  return (n.x / VB_W) * 100;
-                })()}%`,
-                top: `${(() => {
-                  const n = nodes.find((x) => x.id === focus)!;
-                  return (n.y / VB_H) * 100;
-                })()}%`,
-              }}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: -10 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              <div className="rounded-sm bg-ink px-3 py-1.5 text-paper">
-                <p className="label text-[9px] text-paper/70">{focus.replace("-", " ").toUpperCase()}</p>
-                <p className="text-xs font-semibold">
-                  {nodes.find((x) => x.id === focus)!.person.name}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 border border-ink/20 bg-white/80 p-1 font-mono text-xs">
+          <button
+            type="button"
+            onClick={() => setViewMode("graph")}
+            className={`px-3 py-1.5 transition-all ${
+              viewMode === "graph" ? "bg-ink text-white font-bold" : "text-ink/60 hover:text-ink"
+            }`}
+          >
+            🌌 SYNAPSE GRAPH
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={`px-3 py-1.5 transition-all ${
+              viewMode === "grid" ? "bg-ink text-white font-bold" : "text-ink/60 hover:text-ink"
+            }`}
+          >
+            🗂️ DIRECTORY ({filteredPeople.length})
+          </button>
+        </div>
       </div>
 
-      {/* legend */}
-      <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-        {NETWORK_ROLES.map((r) => (
-          <span key={r} className="flex items-center gap-2">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                r === "STUDENTS" ? "bg-ink" : r === "FOUNDERS" ? "bg-ember" : "bg-ash"
-              }`}
-            />
-            <span className="label-ink">{r}</span>
-          </span>
-        ))}
-      </div>
+      {/* ════════════════════════════════════════════════════════════════════
+          VIEW 1: INTERACTIVE LIVING SYNAPTIC NEBULA (GRAPH VIEW)
+         ════════════════════════════════════════════════════════════════════ */}
+      {viewMode === "graph" ? (
+        <div
+          ref={wrapRef}
+          className="relative mx-auto aspect-[16/10] w-full max-w-6xl rounded-2xl border border-ink/15 bg-white/60 p-4 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.06)]"
+          onMouseMove={(e) => {
+            const rect = wrapRef.current?.getBoundingClientRect();
+            if (rect) {
+              setMousePos({
+                x: ((e.clientX - rect.left) / rect.width) * VB_W,
+                y: ((e.clientY - rect.top) / rect.height) * VB_H,
+              });
+            }
+          }}
+          onMouseLeave={() => setMousePos(null)}
+        >
+          <svg
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            className="h-full w-full overflow-visible"
+            role="img"
+            aria-label="Interactive neural network of founders and mentors in the E-Cell ecosystem"
+          >
+            <defs>
+              <radialGradient id="hubSonar" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#e31e24" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#e31e24" stopOpacity="0" />
+              </radialGradient>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
 
-      {/* selected person card */}
+            {/* 1. Hub Radar Crosshairs & Sonar Pulses */}
+            {hubs.map((h) => {
+              const isClusterActive = activeRole === "ALL" || activeRole === h.role;
+              const color = ROLE_COLORS[h.role];
+              return (
+                <g key={h.role} opacity={isClusterActive ? 1 : 0.25} className="transition-opacity duration-300">
+                  {/* Sonar wave */}
+                  <circle
+                    cx={h.x}
+                    cy={h.y}
+                    r={60}
+                    fill="none"
+                    stroke={color.stroke}
+                    strokeWidth="1"
+                    strokeDasharray="4 8"
+                    className="animate-[spin_40s_linear_infinite]"
+                  />
+                  <circle cx={h.x} cy={h.y} r={4} fill={color.bg} />
+                  <text
+                    x={h.x}
+                    y={h.y - 70}
+                    textAnchor="middle"
+                    className="font-mono text-[10px] uppercase font-bold tracking-[0.25em] fill-ink/40 select-none"
+                  >
+                    {h.label}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* 2. Synaptic Edges */}
+            {edges.map((e, idx) => {
+              const a = nodes.find((n) => n.id === e.a)!;
+              const b = nodes.find((n) => n.id === e.b)!;
+              const isRelevant = isHighlighted(a.person) && isHighlighted(b.person);
+              const isFocused = focus !== null && (e.a === focus || e.b === focus);
+              const isCross = e.cross;
+
+              return (
+                <g key={`${e.a}-${e.b}`}>
+                  <line
+                    x1={a.x}
+                    y1={a.y}
+                    x2={b.x}
+                    y2={b.y}
+                    stroke={isFocused ? "#e31e24" : isCross ? "rgba(23,23,23,0.12)" : "rgba(23,23,23,0.18)"}
+                    strokeWidth={isFocused ? 2.2 : isRelevant ? 1 : 0.4}
+                    strokeDasharray={isCross ? "2 4" : undefined}
+                    opacity={isFocused ? 1 : isRelevant ? (focus ? 0.1 : 0.7) : 0.08}
+                    className="transition-all duration-200"
+                  />
+
+                  {/* Traveling Energy Photon Comet along active edges */}
+                  {!reduced && isRelevant && idx % 3 === 0 && (
+                    <circle r={isFocused ? 3 : 1.8} fill={isFocused ? "#e31e24" : "#111111"}>
+                      <animateMotion
+                        path={`M ${a.x} ${a.y} L ${b.x} ${b.y}`}
+                        dur={`${4 + (idx % 4)}s`}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* 3. Interactive Mouse Gravity Tether */}
+            {mousePos && focus && focusedNode && (
+              <line
+                x1={focusedNode.x}
+                y1={focusedNode.y}
+                x2={mousePos.x}
+                y2={mousePos.y}
+                stroke="#e31e24"
+                strokeWidth="1.5"
+                strokeDasharray="3 3"
+                opacity="0.8"
+              />
+            )}
+
+            {/* 4. Synaptic Nodes */}
+            {nodes.map((n) => {
+              const isMatch = isHighlighted(n.person);
+              const active = focus === n.id;
+              const connected = isConnectedToFocus(n.id);
+              const dimmed = (!isMatch || (focus !== null && !connected));
+              const color = ROLE_COLORS[n.person.role];
+
+              return (
+                <g
+                  key={n.id}
+                  transform={`translate(${n.x} ${n.y})`}
+                  opacity={dimmed ? 0.18 : 1}
+                  className="transition-opacity duration-300"
+                >
+                  {/* Outer Pulsing Halo when active/featured */}
+                  {active && (
+                    <>
+                      <circle r={n.r + 14} fill="none" stroke="#e31e24" strokeWidth="1.5" opacity="0.4" />
+                      <circle r={n.r + 8} fill="none" stroke="#e31e24" strokeWidth="2" opacity="0.8" />
+                    </>
+                  )}
+
+                  {n.person.featured && !active && (
+                    <circle
+                      r={n.r + 6}
+                      fill="none"
+                      stroke={color.stroke}
+                      strokeWidth="1"
+                      strokeDasharray="2 4"
+                      className="animate-[spin_20s_linear_infinite]"
+                      opacity="0.6"
+                    />
+                  )}
+
+                  {/* Core Interactive Node Sphere */}
+                  <motion.g
+                    animate={reduced ? undefined : { y: [0, n.drift, 0] }}
+                    transition={{
+                      duration: n.drift * 1.8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: n.seed,
+                    }}
+                  >
+                    {/* Shadow base */}
+                    <circle cx={0} cy={0} r={n.r} fill={color.bg} className="shadow-md" />
+
+                    {/* Touch / Click target */}
+                    <circle
+                      cx={0}
+                      cy={0}
+                      r={n.r + 10}
+                      fill="transparent"
+                      className="cursor-pointer"
+                      onPointerEnter={() => handlePointerEnter(n.id)}
+                      onPointerLeave={() => setFocus(null)}
+                      onClick={() => handleNodeClick(n.person)}
+                    />
+
+                    {/* Small initials for featured nodes */}
+                    {n.person.featured && (
+                      <text
+                        x={0}
+                        y={3}
+                        textAnchor="middle"
+                        className="font-mono text-[8px] font-bold fill-white pointer-events-none select-none"
+                      >
+                        {n.person.avatar}
+                      </text>
+                    )}
+                  </motion.g>
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* ════════════════════════════════════════════════════════════════
+              HOLOGRAPHIC TELEMETRY HOVER TOOLTIP
+             ════════════════════════════════════════════════════════════════ */}
+          <AnimatePresence>
+            {focusedNode && (
+              <motion.div
+                key={focusedNode.id}
+                className="pointer-events-none absolute z-20"
+                style={{
+                  left: `${(focusedNode.x / VB_W) * 100}%`,
+                  top: `${(focusedNode.y / VB_H) * 100}%`,
+                  transform: "translate(-50%, -125%)",
+                }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div className="w-64 rounded-xl border border-ember/40 bg-void/95 p-4 text-paper shadow-[0_15px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between border-b border-paper/10 pb-2 mb-2 font-mono">
+                    <span className="text-[10px] text-ember font-bold tracking-widest uppercase">
+                      {focusedNode.person.role}
+                    </span>
+                    <span className="text-[9px] text-ash tracking-widest">
+                      {focusedNode.person.batch || "E-CELL CU"}
+                    </span>
+                  </div>
+
+                  <h4 className="font-display text-lg text-paper tracking-wide leading-tight">
+                    {focusedNode.person.name}
+                  </h4>
+                  <p className="text-xs text-paper/80 font-mono mt-0.5">{focusedNode.person.title}</p>
+                  
+                  <div className="mt-2.5 pt-2 border-t border-paper/10">
+                    <span className="text-[9px] font-mono text-ember block uppercase tracking-wider font-bold">
+                      BUILDING:
+                    </span>
+                    <p className="text-[11px] text-paper/90 leading-tight line-clamp-2">
+                      {focusedNode.person.building}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between font-mono text-[9px] text-ash">
+                    <span className="text-emerald-400 font-bold">{focusedNode.person.stats}</span>
+                    <span className="text-ember underline">[ CLICK TO OPEN DOSSIER ↗ ]</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        /* ════════════════════════════════════════════════════════════════════
+            VIEW 2: FOUNDER & MENTOR ROSTER GRID (DIRECTORY VIEW)
+           ════════════════════════════════════════════════════════════════════ */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
+          {filteredPeople.map((person) => {
+            const color = ROLE_COLORS[person.role];
+            return (
+              <motion.div
+                key={person.id}
+                layout
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="group relative rounded-xl border border-ink/10 bg-white/70 p-6 backdrop-blur-md transition-all hover:border-ember hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between border-b border-ink/10 pb-3 mb-4 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color.bg }} />
+                      <span className="text-ember font-bold uppercase tracking-wider">{person.role}</span>
+                    </div>
+                    <span className="text-ink/40 tracking-wider">{person.batch}</span>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-mono text-sm font-bold text-white shadow-md"
+                      style={{ backgroundColor: color.bg }}
+                    >
+                      {person.avatar}
+                    </div>
+                    <div>
+                      <h4 className="font-display text-xl text-ink tracking-wide">{person.name}</h4>
+                      <p className="font-mono text-xs text-ink/70 leading-snug mt-0.5">{person.title}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-ink/10 pt-3 space-y-2">
+                    <div>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50 block font-bold">
+                        VENTURE FOCUS:
+                      </span>
+                      <p className="text-xs text-ink/90 leading-relaxed">{person.building}</p>
+                    </div>
+
+                    <div>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-600 block font-bold">
+                        TRACTION / IMPACT:
+                      </span>
+                      <p className="font-mono text-xs text-ink font-semibold">{person.stats}</p>
+                    </div>
+                  </div>
+
+                  {/* Tech Tags */}
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {person.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-sm bg-ink/[0.05] px-2 py-0.5 font-mono text-[10px] text-ink/75"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-ink/10 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => handleNodeClick(person)}
+                    className="font-mono text-xs text-ember font-bold tracking-widest uppercase hover:underline"
+                  >
+                    VIEW DOSSIER ↗
+                  </button>
+                  <span className="font-mono text-[10px] text-ink/40 uppercase">E-CELL VENTURE</span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          SLIDE-IN FOUNDER DOSSIER MODAL
+         ════════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {selected && (
-          <motion.div
-            className="fixed inset-x-4 bottom-4 z-[105] mx-auto max-w-lg border border-line bg-void p-6 text-paper shadow-2xl md:inset-x-auto md:right-8 md:top-24 md:bottom-auto md:max-w-md md:p-8"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            role="dialog"
-            aria-modal="false"
-            aria-label={`${selected.name} profile`}
-          >
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="label absolute right-4 top-4 text-ash transition-colors hover:text-ember"
-              data-cursor="go"
+          <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-void/85 backdrop-blur-2xl">
+            <motion.div
+              className="relative w-full max-w-2xl rounded-2xl border-2 border-ember bg-void p-8 md:p-10 text-paper shadow-[0_0_80px_rgba(227,30,36,0.35)] font-mono"
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ duration: 0.25 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${selected.name} dossier`}
             >
-              CLOSE ✕
-            </button>
-            <p className="label mb-2 text-ember">{selected.role}</p>
-            <h3 className="font-display text-3xl text-paper md:text-4xl">
-              {selected.name}
-            </h3>
-            <div className="mt-6 space-y-5">
-              <div>
-                <p className="label mb-1 text-ash">WHAT ARE YOU BUILDING?</p>
-                <p className="text-sm text-paper/85">{selected.building}</p>
+              {/* Top Header */}
+              <div className="flex items-center justify-between border-b border-paper/15 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <span className="h-2.5 w-2.5 rounded-full bg-ember animate-ping" />
+                  <span className="text-xs font-bold uppercase tracking-[0.35em] text-ember">
+                    FOUNDER DOSSIER // DECLASSIFIED
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="font-mono text-xs text-ash hover:text-paper uppercase tracking-widest transition-colors"
+                >
+                  [ CLOSE ✕ ]
+                </button>
               </div>
-              <div>
-                <p className="label mb-1 text-ash">WHY E-CELL?</p>
-                <p className="text-sm text-paper/85">{selected.why}</p>
+
+              {/* Profile Card Main */}
+              <div className="flex items-start gap-5 mb-6">
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl font-mono text-xl font-bold text-white shadow-xl"
+                  style={{ backgroundColor: ROLE_COLORS[selected.role].bg }}
+                >
+                  {selected.avatar}
+                </div>
+                <div>
+                  <span className="text-[10px] text-ember font-bold tracking-widest uppercase block">
+                    {selected.role} // {selected.batch || "E-CELL NETWORK"}
+                  </span>
+                  <h3 className="hero-display text-3xl text-paper tracking-wide mt-0.5">{selected.name}</h3>
+                  <p className="text-xs text-ash font-mono">{selected.title}</p>
+                </div>
               </div>
-              <div>
-                <p className="label mb-1 text-ash">WHAT ARE YOU OBSESSED WITH?</p>
-                <p className="text-sm text-paper/85">{selected.obsessed}</p>
+
+              {/* Dossier Body */}
+              <div className="space-y-4 border-t border-paper/10 pt-4 text-xs font-mono">
+                <div className="border border-paper/15 bg-paper/[0.02] p-4">
+                  <span className="text-ember font-bold block uppercase text-[10px] mb-1">
+                    WHAT ARE YOU BUILDING?
+                  </span>
+                  <p className="text-paper/90 leading-relaxed font-display text-lg tracking-wide">
+                    {selected.building}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="border border-paper/15 bg-paper/[0.02] p-3.5">
+                    <span className="text-ash block uppercase text-[10px] mb-1 font-bold">
+                      WHY E-CELL?
+                    </span>
+                    <p className="text-paper/80 leading-relaxed">{selected.why}</p>
+                  </div>
+
+                  <div className="border border-paper/15 bg-paper/[0.02] p-3.5">
+                    <span className="text-ash block uppercase text-[10px] mb-1 font-bold">
+                      CURRENT OBSESSION:
+                    </span>
+                    <p className="text-paper/80 leading-relaxed">{selected.obsessed}</p>
+                  </div>
+                </div>
+
+                <div className="border border-emerald-500/30 bg-emerald-950/20 p-3.5 flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">
+                    TRACTION & MILESTONES:
+                  </span>
+                  <span className="text-sm font-bold text-paper">{selected.stats}</span>
+                </div>
+
+                {/* Tech Stack Pills */}
+                <div className="pt-2">
+                  <span className="text-[10px] text-ash uppercase tracking-wider block mb-2 font-bold">
+                    CORE SUPERPOWERS & TECH:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selected.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full border border-paper/20 bg-paper/[0.04] px-3 py-1 text-[11px] text-paper font-semibold"
+                      >
+                        ⚡ {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-            <p className="label mt-6 text-ash/70">
-              SAMPLE PROFILE — REPLACE VIA data/content.ts
-            </p>
-          </motion.div>
+
+              {/* Action Buttons */}
+              <div className="mt-8 pt-5 border-t border-paper/15 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {selected.linkedin && (
+                    <a
+                      href={selected.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="border border-paper/30 px-4 py-2 text-xs text-paper hover:border-paper transition-colors"
+                    >
+                      LINKEDIN ↗
+                    </a>
+                  )}
+                  {selected.github && (
+                    <a
+                      href={selected.github}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="border border-paper/30 px-4 py-2 text-xs text-paper hover:border-paper transition-colors"
+                    >
+                      GITHUB ↗
+                    </a>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelected(null);
+                    scrollToId("start");
+                  }}
+                  className="w-full sm:w-auto border border-ember bg-ember px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-paper shadow-[0_0_20px_rgba(227,30,36,0.4)]"
+                >
+                  COLLABORATE IN THE FOUNDRY →
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* handoff */}
-      <div className="mt-24 text-center md:mt-32">
+      {/* Section Footer Callout */}
+      <div className="mt-20 text-center md:mt-28">
         <MaskText>
-          <p className="font-display text-[clamp(26px,4.5vw,64px)] leading-tight text-ink">
-            SOMEONE IS BUILDING WHAT YOU'RE THINKING ABOUT.
+          <p className="hero-display text-[clamp(28px,5vw,72px)] leading-tight text-ink">
+            SOMEONE IN THIS NETWORK IS BUILDING WHAT YOU'RE THINKING ABOUT.
           </p>
         </MaskText>
-        <Reveal delay={0.2} className="mt-6">
-          <p className="label-ink text-ember">FIND THEM. OR BE THEM.</p>
+        <Reveal delay={0.2} className="mt-6 flex justify-center">
+          <Magnetic>
+            <button
+              type="button"
+              onClick={() => scrollToId("start")}
+              data-cursor="enter"
+              className="border-2 border-ink bg-ink px-8 py-4 font-mono text-xs md:text-sm font-bold tracking-[0.25em] uppercase text-paper shadow-xl hover:bg-ember hover:border-ember transition-all"
+            >
+              FIND YOUR CO-FOUNDER IN THE FOUNDRY →
+            </button>
+          </Magnetic>
         </Reveal>
       </div>
     </section>
